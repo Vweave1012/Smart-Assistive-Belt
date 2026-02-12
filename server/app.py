@@ -3,6 +3,7 @@ import time
 import os
 import numpy as np
 import joblib
+from flask import render_template
 
 # IMPORT THE TIME MANAGER FROM YOUR LOGIC FOLDER
 from logic.time_manager import TimeManager #
@@ -95,7 +96,15 @@ def reset_timer():
         tm.update_toilet_time()
         return jsonify({"msg": "Toilet timer reset"}), 200
     return jsonify({"error": "invalid event"}), 400
+@app.route('/')
+def index():
+    return render_template('index.html')
 
+@app.route('/get_latest_status')
+def get_latest_status():
+    # This assumes you have a global variable tracking the last prediction
+    # For now, we return a sample to test the UI
+    return jsonify({"final_status": getattr(app, 'last_status', 'WAITING_FOR_BELT')})
 if __name__ == "__main__":
     # Runs on port 5000, accessible to ESP32 on same WiFi
     app.run(host="0.0.0.0", port=5000)
