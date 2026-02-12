@@ -12,7 +12,7 @@ CORS(app)
 # This loads model.pkl and scaler.pkl once when the server starts
 # Change this line in app.py to match your new file names:
 engine = MLInference(
-    model_path="ml_engine/model.h5", # Use .h5 instead of .pkl
+    model_path="ml_engine/event_ml_model.h5",
     scaler_path="ml_engine/scaler.pkl"
 )
 tm = TimeManager() 
