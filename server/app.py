@@ -1,60 +1,17 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import time
 import os
-import numpy as np
-import joblib
-from flask import render_template
 
-# IMPORT THE TIME MANAGER FROM YOUR LOGIC FOLDER
-from logic.time_manager import TimeManager #
+# IMPORT YOUR CUSTOM MODULES
+from logic.time_manager import TimeManager 
+from ml_engine.inference import MLInference 
 
 app = Flask(__name__)
-tm = TimeManager() # Create the time tracking object
 
-# =========================================================
-# LOAD ML MODEL FROM CORRECT FOLDER
-# =========================================================
-USE_ML = False
-model = None
-scaler = None
-labels = ["NORMAL", "RESTLESS", "HIGHLY_RESTLESS", "NO_USER", "ACTIVE"]
-
-# Update paths to look inside 'ml_engine' folder
-model_path = "ml_engine/event_ml_model.h5"
-scaler_path = "ml_engine/scaler.pkl"
-
-if os.path.exists(model_path) and os.path.exists(scaler_path):
-    try:
-        import tensorflow as tf
-        model = tf.keras.models.load_model(model_path)
-        scaler = joblib.load(scaler_path)
-        USE_ML = True
-        print("✅ ML model + scaler loaded from ml_engine/")
-    except Exception as e:
-        print(f"❌ Error loading ML model: {e}")
-else:
-    print("⚠️ ML files not found in ml_engine/ → using rule-based logic")
-
-# =========================================================
-# PREDICTION LOGIC (Merged Rule + ML)
-# =========================================================
-def get_prediction(data):
-    system_ok = data.get("system_ok", 0)
-    present = data.get("present", 0)
-    fsr = data.get("fsr_pct", 0)
-    motion = data.get("motion", 0)
-    rotation = data.get("rotation", 0)
-
-    # Safety checks
-    if system_ok == 0: return "SYSTEM_ERROR"
-    if present == 0 or fsr < 5: return "NO_USER"
-
-    # Activity/Restlessness logic
-    if motion > 50000 and fsr < 25: return "ACTIVE"
-    if motion > 45000 or rotation > 20000: return "HIGHLY_RESTLESS"
-    if motion > 33000 or rotation > 1500: return "RESTLESS"
-    
-    return "NORMAL"
+# INITIALIZE ENGINES
+# This loads model.pkl and scaler.pkl once when the server starts
+engine = MLInference(model_path="ml_engine/model.pkl", scaler_path="ml_engine/scaler.pkl")
+tm = TimeManager() 
 
 # =========================================================
 # MAIN API ENDPOINTS
@@ -66,12 +23,20 @@ def receive_data():
         data = request.get_json(force=True)
         print("\n📥 ESP Data:", data)
 
-        # 1. Get Physical State from Sensors
-        prediction = get_prediction(data)
+        # 1. Get Physical State using the ML Engine
+        # This replaces your old manual if/else logic
+        prediction = engine.predict(data)
+        
+        # Fallback if ML fails (e.g., files missing)
+        if prediction is None:
+            prediction = "ML_ENGINE_OFFLINE"
 
-        # 2. Apply Time-Lapse Logic (Phase 3)
-        # This checks if enough time passed since last meal/toilet
+        # 2. Apply Time-Lapse Context (Phase 3)
+        # This checks TSLM/TSLU to see if it's really Hunger or Toilet Need
         final_status = tm.evaluate_context(prediction)
+
+        # Update the app state so the dashboard can see it
+        app.last_status = final_status
 
         print(f"🧠 ML State: {prediction} | 🕒 Final Status: {final_status}")
 
@@ -83,9 +48,9 @@ def receive_data():
 
     except Exception as e:
         print("❌ Server Error:", e)
-        return jsonify({"error": "server_failure"}), 500
+        return jsonify({"error": str(e)}), 500
 
-# Endpoint for Caregiver "One-Time" inputs
+# Endpoint for Caregiver Dashboard Buttons
 @app.route("/reset_timer", methods=["POST"])
 def reset_timer():
     event_type = request.json.get("event") # 'meal' or 'toilet'
@@ -96,15 +61,18 @@ def reset_timer():
         tm.update_toilet_time()
         return jsonify({"msg": "Toilet timer reset"}), 200
     return jsonify({"error": "invalid event"}), 400
+
+# ROUTES FOR CAREGIVER UI
 @app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/get_latest_status')
 def get_latest_status():
-    # This assumes you have a global variable tracking the last prediction
-    # For now, we return a sample to test the UI
-    return jsonify({"final_status": getattr(app, 'last_status', 'WAITING_FOR_BELT')})
+    # Dashboard calls this every 2 seconds to update the screen
+    status = getattr(app, 'last_status', 'WAITING_FOR_BELT')
+    return jsonify({"final_status": status})
+
 if __name__ == "__main__":
     # Runs on port 5000, accessible to ESP32 on same WiFi
     app.run(host="0.0.0.0", port=5000)
