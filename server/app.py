@@ -1,16 +1,20 @@
 from flask import Flask, request, jsonify, render_template
 import time
 import os
-
+from flask_cors import CORS
 # IMPORT YOUR CUSTOM MODULES
 from logic.time_manager import TimeManager 
 from ml_engine.inference import MLInference 
 
 app = Flask(__name__)
-
+CORS(app)
 # INITIALIZE ENGINES
 # This loads model.pkl and scaler.pkl once when the server starts
-engine = MLInference(model_path="ml_engine/model.pkl", scaler_path="ml_engine/scaler.pkl")
+# Change this line in app.py to match your new file names:
+engine = MLInference(
+    model_path="ml_engine/model.h5", # Use .h5 instead of .pkl
+    scaler_path="ml_engine/scaler.pkl"
+)
 tm = TimeManager() 
 
 # =========================================================
@@ -67,12 +71,16 @@ def reset_timer():
 def index():
     return render_template('index.html')
 
+# Ensure your TSLx metrics route is ready for the React App
 @app.route('/get_latest_status')
 def get_latest_status():
-    # Dashboard calls this every 2 seconds to update the screen
-    status = getattr(app, 'last_status', 'WAITING_FOR_BELT')
-    return jsonify({"final_status": status})
-
+    status = getattr(app, 'last_status', 'STABLE')
+    metrics = {
+        "tslm": round(tm.get_hours_since_meal(), 1),
+        "tslu": round(tm.get_hours_since_toilet(), 1),
+        "tslb": round(tm.get_hours_since_bowel(), 1)
+    }
+    return jsonify({"final_status": status, "time_metrics": metrics})
 if __name__ == "__main__":
     # Runs on port 5000, accessible to ESP32 on same WiFi
     app.run(host="0.0.0.0", port=5000)
