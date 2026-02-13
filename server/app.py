@@ -1,86 +1,96 @@
-from flask import Flask, request, jsonify, render_template
-import time
-import os
+# server/app.py
+from flask import Flask, request, jsonify, send_from_directory
+from werkzeug.exceptions import BadRequest
+from ml_engine.inference import predict_state
+from logic.time_manager import apply_time_logic, update_event, load_state
 from flask_cors import CORS
-# IMPORT YOUR CUSTOM MODULES
-from logic.time_manager import TimeManager 
-from ml_engine.inference import MLInference 
+import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static", template_folder="templates")
 CORS(app)
-# INITIALIZE ENGINES
-# This loads model.pkl and scaler.pkl once when the server starts
-# Change this line in app.py to match your new file names:
-engine = MLInference(
-    model_path="ml_engine/event_ml_model.h5",
-    scaler_path="ml_engine/scaler.pkl"
-)
-tm = TimeManager() 
 
-# =========================================================
-# MAIN API ENDPOINTS
-# =========================================================
-
-@app.route("/data", methods=["POST"])
-def receive_data():
+@app.route("/")
+def home():
+    # serve the UI index if built in `static` / `templates`
     try:
-        data = request.get_json(force=True)
-        print("\n📥 ESP Data:", data)
+        return send_from_directory(app.template_folder, "index.html")
+    except Exception:
+        return "Smart Assistive Belt API"
 
-        # 1. Get Physical State using the ML Engine
-        # This replaces your old manual if/else logic
-        prediction = engine.predict(data)
-        
-        # Fallback if ML fails (e.g., files missing)
-        if prediction is None:
-            prediction = "ML_ENGINE_OFFLINE"
+@app.route("/api/predict", methods=["POST"])
+def api_predict():
+    """
+    Expects JSON:
+    {
+      "fsr_pct": float,
+      "motion": float,
+      "rotation": float,
+      "trend": float
+    }
+    Returns:
+    {
+      timestamp, ml_raw, ml_prob, probs, final_state
+    }
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            raise BadRequest("JSON body required")
+        # ML prediction
+        ml = predict_state(data)
+        ml_raw = ml["ml_raw"]
+        ml_prob = ml.get("ml_prob", None)
+        probs = ml.get("probs", {})
 
-        # 2. Apply Time-Lapse Context (Phase 3)
-        # This checks TSLM/TSLU to see if it's really Hunger or Toilet Need
-        final_status = tm.evaluate_context(prediction)
+        # final validation by time_manager
+        final = apply_time_logic(ml_raw, data.get("fsr_pct", 0.0))
 
-        # Update the app state so the dashboard can see it
-        app.last_status = final_status
+        # ===== SAVE FINAL STATE FOR FRONTEND =====
+        from logic.time_manager import load_state, save_state
+        from datetime import datetime
 
-        print(f"🧠 ML State: {prediction} | 🕒 Final Status: {final_status}")
+        try:
+            state = load_state()
+            state["last_final_state"] = final
+            state["last_final_state_time"] = datetime.now().isoformat()
+            save_state(state)
+        except Exception as e:
+            app.logger.warning(f"Failed to store final_state: {e}")
 
-        return jsonify({
-            "timestamp": time.time(),
-            "raw_prediction": prediction,
-            "final_status": final_status
-        }), 200
 
+        resp = {
+            "timestamp": ml["timestamp"],
+            "ml_raw": ml_raw,
+            "ml_prob": ml_prob,
+            "probs": probs,
+            "final_state": final
+        }
+        return jsonify(resp)
     except Exception as e:
-        print("❌ Server Error:", e)
+        return jsonify({"error": str(e)}), 400
+
+@app.route("/api/update_event", methods=["POST"])
+def api_update_event():
+    """
+    Confirmed caregiver action to update timestamps.
+    JSON: {"final_state": "HUNGER" | "PEE" | "POOP"}
+    """
+    try:
+        data = request.get_json()
+        final_state = data.get("final_state")
+        if final_state not in ("HUNGER", "PEE", "POOP"):
+            raise BadRequest("final_state must be one of HUNGER, PEE, POOP")
+        new_state = update_event(final_state)
+        return jsonify({"ok": True, "state": new_state})
+    except BadRequest as br:
+        return jsonify({"error": str(br)}), 400
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Endpoint for Caregiver Dashboard Buttons
-@app.route("/reset_timer", methods=["POST"])
-def reset_timer():
-    event_type = request.json.get("event") # 'meal' or 'toilet'
-    if event_type == 'meal':
-        tm.update_meal_time()
-        return jsonify({"msg": "Meal timer reset"}), 200
-    elif event_type == 'toilet':
-        tm.update_toilet_time()
-        return jsonify({"msg": "Toilet timer reset"}), 200
-    return jsonify({"error": "invalid event"}), 400
+@app.route("/api/state", methods=["GET"])
+def api_state():
+    st = load_state()
+    return jsonify(st)
 
-# ROUTES FOR CAREGIVER UI
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-# Ensure your TSLx metrics route is ready for the React App
-@app.route('/get_latest_status')
-def get_latest_status():
-    status = getattr(app, 'last_status', 'STABLE')
-    metrics = {
-        "tslm": round(tm.get_hours_since_meal(), 1),
-        "tslu": round(tm.get_hours_since_toilet(), 1),
-        "tslb": round(tm.get_hours_since_bowel(), 1)
-    }
-    return jsonify({"final_status": status, "time_metrics": metrics})
 if __name__ == "__main__":
-    # Runs on port 5000, accessible to ESP32 on same WiFi
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)

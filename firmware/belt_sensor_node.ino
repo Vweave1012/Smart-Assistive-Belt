@@ -2,11 +2,11 @@
 #include <Wire.h>
 
 /* ================= WIFI CONFIG ================= */
-const char* ssid     = "ESP32_TEST";      // 2.4 GHz WiFi
-const char* password = "12345678";
+const char* ssid     = "LH-3 2.4";      // 2.4 GHz WiFi
+const char* password = "iter@lh3";
 
 /* ❗ IMPORTANT: ONLY IP, NO http:// */
-const char* serverIP = "10.242.251.170";
+const char* serverIP = "10.90.3.35";
 const int   serverPort = 5000;
 
 /* ================= MPU6050 ================= */
@@ -122,13 +122,13 @@ void loop() {
 
     String json = "{";
     json += "\"fsr_pct\":" + String(pressurePct) + ",";
-    json += "\"present\":" + String(present) + ",";
     json += "\"motion\":" + String(motion) + ",";
     json += "\"rotation\":" + String(rotation) + ",";
-    json += "\"system_ok\":1";
+    json += "\"trend\":0";
     json += "}";
 
-    client.println("POST /data HTTP/1.1");
+
+    client.println("POST /api/predict HTTP/1.1");
     client.print("Host: "); client.println(serverIP);
     client.println("Content-Type: application/json");
     client.println("Connection: close");

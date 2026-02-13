@@ -27,7 +27,9 @@ export default function CaregiverApp() {
   // --- ADDED STATE FOR BACKEND METRICS ---
   const [activeAlert, setActiveAlert] = useState("WAITING_FOR_BELT");
   const [timeStats, setTimeStats] = useState({ tslm: 0, tslu: 0, tslb: 0 });
-  const BACKEND_URL = 'http://YOUR_LAPTOP_IP:5000'; // Replace with your IPv4
+  const [beltConnected, setBeltConnected] = useState(false);
+  const BACKEND_URL = "http://localhost:5000";
+; // Replace with your IPv4
 
   const [alerts, setAlerts] = useState([]);
   // Updated patient to use state from setup form
@@ -46,37 +48,76 @@ export default function CaregiverApp() {
   const [newNote, setNewNote] = useState('');
   const [showMedForm, setShowMedForm] = useState(false);
   const [showNoteForm, setShowNoteForm] = useState(false);
-
+  
   // --- ADDED BACKEND FETCHING FUNCTIONS ---
-  const updateFromBackend = async () => {
-    try {
-      const response = await fetch(`${BACKEND_URL}/get_latest_status`);
-      const data = await response.json();
-      setActiveAlert(data.final_status);
-      if (data.time_metrics) {
-        setTimeStats({
-          tslm: data.time_metrics.tslm,
-          tslu: data.time_metrics.tslu,
-          tslb: data.time_metrics.tslb
-        });
-      }
-    } catch (error) {
-      console.error("Backend offline:", error);
-    }
-  };
+  // Replace your existing updateFromBackend with this:
+const updateFromBackend = async () => {
+  try {
+    // 1) fetch stored timestamps (ISO strings) from backend
+    const resp = await fetch(`${BACKEND_URL}/api/state`);
+    const data = await resp.json();
+    // data expected: { last_meal: "...", last_pee: "...", last_poop: "..." }
 
-  const handleReset = async (type) => {
-    try {
-      await fetch(`${BACKEND_URL}/reset_timer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ event: type })
-      });
-      updateFromBackend(); 
-    } catch (error) {
-      console.warn("Reset failed:", error);
+    // helper to convert ISO timestamp -> hours since (rounded)
+    const hoursSince = (iso) => {
+      if (!iso) return null;
+      const mins = (Date.now() - new Date(iso).getTime()) / (1000 * 60);
+      return Math.round((mins / 60) * 10) / 10; // e.g. 1.5 hrs
+    };
+
+    setTimeStats({
+      tslm: hoursSince(data.last_meal) ?? 0,
+      tslu: hoursSince(data.last_pee) ?? 0,
+      tslb: hoursSince(data.last_poop) ?? 0
+    });
+
+    // Optional: if you add `last_final_state` to state.json on server, show it:
+    if (data.last_final_state) {
+      setActiveAlert(data.last_final_state);
+
+      // 🔹 connection check (10 sec rule)
+      const lastTime = new Date(data.last_final_state_time).getTime();
+      const diffSec = (Date.now() - lastTime) / 1000;
+
+      setBeltConnected(diffSec < 10);
+    } else {
+      setBeltConnected(false);
     }
-  };
+
+  } catch (error) {
+    console.error("Backend offline or connection refused:", error);
+  }
+};
+
+// Replace your handleReset with this:
+const handleReset = async (type) => {
+  try {
+    // map UI event name -> final_state expected by backend update_event
+    const map = {
+      meal: "HUNGER",
+      toilet: "PEE",
+      bowel: "POOP"
+    };
+    const final_state = map[type];
+    if (!final_state) return console.warn("Unknown reset type:", type);
+
+    const resp = await fetch(`${BACKEND_URL}/api/update_event`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ final_state })
+    });
+
+    if (!resp.ok) {
+      console.warn("Reset API returned not OK:", resp.status);
+    } else {
+      // immediately refresh metrics display
+      updateFromBackend();
+    }
+  } catch (err) {
+    console.warn("Reset failed:", err);
+  }
+};
+
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -128,21 +169,7 @@ export default function CaregiverApp() {
     }
   };
 
-  const generateAlert = () => {
-    const scenarios = [
-      { severity: 'warning', icon: '🍽️', title: 'Hunger Detected', message: 'Elevated stomach activity detected', action: 'Consider meal preparation', urgency: 'Medium', confidence: 85, timestamp: new Date() },
-      { severity: 'critical', icon: '🚽', title: 'Urgent: Bathroom Assistance', message: 'High bladder pressure detected', action: 'Assist patient to bathroom immediately', urgency: 'Critical', confidence: 92, timestamp: new Date() },
-      { severity: 'critical', icon: '🚽', title: 'Urgent: Bathroom Assistance', message: 'Elevated abdominal pressure detected', action: 'Assist patient immediately', urgency: 'Critical', confidence: 90, timestamp: new Date() },
-      { severity: 'warning', icon: '⚠️', title: 'Comfort Alert', message: 'Elevated stress indicators detected', action: 'Assess comfort and environment', urgency: 'Medium', confidence: 78, timestamp: new Date() },
-      { severity: 'success', icon: '✓', title: 'Patient Status Stable', message: 'All vital parameters normal', action: 'Continue monitoring', urgency: 'Low', confidence: 95, timestamp: new Date() }
-    ];
-    const randomAlert = scenarios[Math.floor(Math.random() * scenarios.length)];
-    const newAlert = { ...randomAlert, id: Date.now() };
-    setAlerts(prev => [newAlert, ...prev.slice(0, 9)]);
-    setAlertHistory(prev => [newAlert, ...prev.slice(0, 19)]);
-    setUnreadCount(prev => prev + 1);
-    if (soundEnabled && randomAlert.severity !== 'success') playAlertSound(randomAlert.severity);
-  };
+
 
   const playAlertSound = (severity) => {
     if ('vibrate' in navigator) navigator.vibrate(severity === 'critical' ? [200, 100, 200, 100, 200] : [150, 100, 150]);
@@ -186,17 +213,82 @@ export default function CaregiverApp() {
   };
 
   useEffect(() => {
-    if (isAuthenticated && !isFirstSetup) { // Only run tracking if setup is done
-      updateFromBackend(); // Fetch initial data
-      generateAlert();
-      const interval = setInterval(() => {
-        if (Math.random() > 0.4) generateAlert();
-        updateFromBackend(); // Poll the server
-        setLastUpdate(new Date());
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [soundEnabled, isAuthenticated, isFirstSetup]);
+  updateFromBackend();
+  const id = setInterval(updateFromBackend, 8000);
+  return () => clearInterval(id);
+}, []);
+
+  useEffect(() => {
+  if (!activeAlert || activeAlert === "NORMAL" || activeAlert === "NO_USER") {
+    return; // ❌ DO NOT CLEAR OLD ALERTS
+  }
+
+  let newAlert = null;
+
+  // === Toilet / Hunger alerts ===
+  if (activeAlert === "HUNGER") {
+    newAlert = {
+      id: Date.now(),
+      severity: "warning",
+      icon: "🍽️",
+      title: "Hunger Detected",
+      message: "Time threshold reached since last meal.",
+      action: `Provide food to ${patientProfile.name}.`,
+      timestamp: new Date()
+    };
+  }
+
+  if (activeAlert === "PEE") {
+    newAlert = {
+      id: Date.now(),
+      severity: "critical",
+      icon: "🚽",
+      title: "Urine Activity Detected",
+      message: "Pressure change detected.",
+      action: `Assist ${patientProfile.name} immediately.`,
+      timestamp: new Date()
+    };
+  }
+
+  if (activeAlert === "POOP") {
+    newAlert = {
+      id: Date.now(),
+      severity: "critical",
+      icon: "🚽",
+      title: "Bowel Activity Detected",
+      message: "Sustained abdominal pressure detected.",
+      action: `Assist ${patientProfile.name} immediately.`,
+      timestamp: new Date()
+    };
+  }
+
+  // === Restlessness ===
+  if (activeAlert === "RESTLESS" || activeAlert === "HIGHLY_RESTLESS") {
+    const isHighly = activeAlert === "HIGHLY_RESTLESS";
+
+    newAlert = {
+      id: Date.now(),
+      severity: isHighly ? "critical" : "warning",
+      icon: "⚠️",
+      title: isHighly ? "High Restlessness" : "Restlessness Detected",
+      message: "Abnormal movement detected by belt.",
+      action: "Check patient comfort.",
+      timestamp: new Date()
+    };
+  }
+
+  if (!newAlert) return;
+
+  // ✅ Add new alert on top WITHOUT deleting old ones
+  setAlerts(prev => [newAlert, ...prev]);
+
+  // ✅ Also store in history
+  setAlertHistory(prev => [newAlert, ...prev]);
+
+}, [activeAlert]);
+
+
+
 
   // Login/Register Page
   if (!isAuthenticated) {
@@ -340,13 +432,38 @@ export default function CaregiverApp() {
 
         {activeTab === 'alerts' && (
           <div>
-            <div className={`alert alert-${activeAlert.includes('POTENTIAL') ? 'critical' : 'success'}`} style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px', background: activeAlert.includes('POTENTIAL') ? '#fee2e2' : '#dcfce7', borderLeft: `6px solid ${activeAlert.includes('POTENTIAL') ? '#dc2626' : '#16a34a'}`, padding: '20px', borderRadius: '12px' }}>
-              <CheckCircle size={32} color={activeAlert.includes('POTENTIAL') ? '#dc2626' : '#16a34a'} />
+            {/* ===== BELT CONNECTION STATUS BOX ===== */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '15px',
+                marginBottom: '20px',
+                background: activeAlert === "WAITING_FOR_BELT" ? '#fee2e2' : '#dcfce7',
+                borderLeft: `6px solid ${activeAlert === "WAITING_FOR_BELT" ? '#dc2626' : '#16a34a'}`,
+                padding: '20px',
+                borderRadius: '12px'
+              }}
+            >
+              <CheckCircle
+                size={32}
+                color={activeAlert === "WAITING_FOR_BELT" ? '#dc2626' : '#16a34a'}
+              />
+
               <div>
-                <h3 style={{ margin: '0' }}>{activeAlert.replace('_', ' ')}</h3>
-                <p style={{ margin: '0', fontSize: '14px' }}>System monitoring real-time behavior</p>
+                <h3 style={{ margin: 0 }}>
+                  {beltConnected ? "BELT CONNECTED" : "BELT DISCONNECTED"}
+                </h3>
+
+                <p style={{ margin: 0, fontSize: '14px' }}>
+                  {beltConnected
+                    ? "System monitoring real-time patient behavior"
+                    : "Waiting for sensor data from smart belt"}
+                </p>
+
               </div>
             </div>
+
             
             <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
               <button onClick={() => setHistoryView(false)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #0f172a', background: !historyView ? '#0f172a' : 'white', color: !historyView ? 'white' : '#0f172a', cursor: 'pointer' }}>Active Alerts</button>

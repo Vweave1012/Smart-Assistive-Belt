@@ -1,5 +1,7 @@
 {
-    "last_meal_time": 0,
-    "last_toilet_time": 0,
-    "last_bowel_time": 0
+  "last_meal": "2026-02-13T23:05:15.791460",
+  "last_pee": "2026-02-13T23:05:16.223070",
+  "last_poop": "2026-02-13T23:05:17.635518",
+  "last_final_state": "NO_USER",
+  "last_final_state_time": "2026-02-13T23:06:46.742302"
 }

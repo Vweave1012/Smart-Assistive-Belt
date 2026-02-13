@@ -1,64 +1,147 @@
-import time
 import json
 import os
+from datetime import datetime
 
-class TimeManager:
-    def __init__(self, state_file='server/logic/state.json'):
-        # 1. Store the file path and define thresholds
-        self.state_file = state_file
-        self.HUNGER_THRESHOLD = 4 * 3600  # 4 hours
-        self.TOILET_THRESHOLD = 3 * 3600  # 3 hours
+# ================= FILE PATH =================
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # server/
+STATE_FILE = os.path.join(BASE_DIR, "logic", "state.json")
 
-        # 2. Set default values in case the file is missing
-        self.last_meal_time = time.time()
-        self.last_toilet_time = time.time()
-        
-        # 3. Load previous data from state.json
-        self.load_state()
 
-    def load_state(self):
-        """Reads timestamps from the JSON file if it exists."""
-        if os.path.exists(self.state_file) and os.path.getsize(self.state_file) > 0:
-            try:
-                with open(self.state_file, 'r') as f:
-                    data = json.load(f)
-                    self.last_meal_time = data.get("last_meal_time", time.time())
-                    self.last_toilet_time = data.get("last_toilet_time", time.time())
-            except Exception as e:
-                print(f"Error loading state.json: {e}")
+# ================= CLINICAL THRESHOLDS (minutes) =================
+# Realistic caregiving intervals
+HUNGER_MINUTES = 1    # 3 hours
+PEE_MINUTES = 1        # 1 hour
+POOP_MINUTES = 1       # 8 hours
 
-    def save_state(self):
-        """Writes current timestamps to the JSON file."""
-        data = {
-            "last_meal_time": self.last_meal_time,
-            "last_toilet_time": self.last_toilet_time
+
+# ================= STATE FILE HANDLING =================
+def _ensure_state_file():
+    """Create state.json if missing."""
+    if not os.path.exists(STATE_FILE):
+        state = {
+            "last_meal": None,
+            "last_pee": None,
+            "last_poop": None
         }
-        with open(self.state_file, 'w') as f:
-            json.dump(data, f, indent=4)
+        with open(STATE_FILE, "w") as f:
+            json.dump(state, f, indent=2)
 
-    def update_meal_time(self):
-        """Updates the timer and saves to JSON."""
-        self.last_meal_time = time.time()
-        self.save_state()
 
-    def update_toilet_time(self):
-        """Updates the timer and saves to JSON."""
-        self.last_toilet_time = time.time()
-        self.save_state()
+def load_state():
+    _ensure_state_file()
+    with open(STATE_FILE, "r") as f:
+        return json.load(f)
 
-    def get_time_stats(self):
-        now = time.time()
-        tslm = now - self.last_meal_time
-        tslu = now - self.last_toilet_time
-        return tslm, tslu
 
-    def evaluate_context(self, physical_state):
-        tslm, tslu = self.get_time_stats()
-        
-        if physical_state in ["RESTLESS", "HIGHLY_RESTLESS"]:
-            if tslm > self.HUNGER_THRESHOLD:
-                return "POTENTIAL_HUNGER"
-            if tslu > self.TOILET_THRESHOLD:
-                return "POTENTIAL_TOILET_NEED"
-        
-        return physical_state
+def save_state(state):
+    os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
+    with open(STATE_FILE, "w") as f:
+        json.dump(state, f, indent=2)
+
+
+# ================= TIME CALCULATION =================
+def minutes_since(timestamp_str):
+    """Return minutes since given ISO timestamp."""
+    if timestamp_str is None:
+        return float("inf")
+
+    try:
+        last_time = datetime.fromisoformat(timestamp_str)
+    except Exception:
+        return float("inf")
+
+    return (datetime.now() - last_time).total_seconds() / 60.0
+
+
+def get_time_metrics():
+    """
+    Returns:
+        tslm → minutes since last meal
+        tslu → minutes since last pee
+        tslb → minutes since last poop
+    """
+    state = load_state()
+
+    tslm = minutes_since(state.get("last_meal"))
+    tslu = minutes_since(state.get("last_pee"))
+    tslb = minutes_since(state.get("last_poop"))
+
+    return tslm, tslu, tslb
+
+
+# ================= CORE DECISION LOGIC =================
+def apply_time_logic(ml_state, fsr_pct):
+    """
+    Combine ML prediction with clinical time thresholds.
+
+    FINAL STATES returned:
+        NO_USER
+        NORMAL
+        HUNGER / PEE / POOP
+        POTENTIAL_HUNGER / POTENTIAL_PEE / POTENTIAL_POOP
+    """
+
+    # ---------- NO USER CHECK ----------
+    try:
+        fsr = float(fsr_pct)
+    except Exception:
+        fsr = 0.0
+
+    if fsr < 5:
+        return "NO_USER"
+
+    # ---------- LOAD TIME METRICS ----------
+    tslm, tslu, tslb = get_time_metrics()
+
+    # ---------- HUNGER ----------
+    if ml_state == "HUNGER":
+        if tslm >= HUNGER_MINUTES:
+            return "POTENTIAL_HUNGER"   # urgent hunger alert
+        return "HUNGER"                 # mild indication
+
+    # ---------- PEE ----------
+    if ml_state == "PEE":
+        if tslu >= PEE_MINUTES:
+            return "POTENTIAL_PEE"      # urgent bathroom alert
+        return "PEE"
+
+    # ---------- POOP ----------
+    if ml_state == "POOP":
+        if tslb >= POOP_MINUTES:
+            return "POTENTIAL_POOP"     # urgent bowel alert
+        return "POOP"
+
+    # ---------- DEFAULT ----------
+    return "NORMAL"
+
+
+# ================= TIMER UPDATE (RESET HANDLER) =================
+def update_event(final_state):
+    """
+    Update timestamps when caregiver CONFIRMS event.
+
+    Accepts:
+        HUNGER / PEE / POOP
+        POTENTIAL_HUNGER / POTENTIAL_PEE / POTENTIAL_POOP
+    """
+
+    if not isinstance(final_state, str):
+        return load_state()
+
+    # Remove POTENTIAL_ prefix if present
+    normalized = final_state.replace("POTENTIAL_", "").upper()
+
+    state = load_state()
+    now = datetime.now().isoformat()
+
+    if normalized == "HUNGER":
+        state["last_meal"] = now
+
+    elif normalized == "PEE":
+        state["last_pee"] = now
+
+    elif normalized == "POOP":
+        state["last_poop"] = now
+
+    save_state(state)
+    return state

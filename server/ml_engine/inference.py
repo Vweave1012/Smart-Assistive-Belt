@@ -1,38 +1,85 @@
+# server/ml_engine/inference.py
 import joblib
 import numpy as np
+import pandas as pd
 import os
-import tensorflow as tf  # FIXED: Required for .h5 models
+from datetime import datetime
 
-class MLInference:
-    def __init__(self, model_path='ml_engine/event_ml_model.h5', scaler_path='ml_engine/scaler.pkl'):
-        self.labels = ['HIGHLY_RESTLESS', 'NORMAL', 'NO_USER', 'RESTLESS']
-        
-        if os.path.exists(model_path) and os.path.exists(scaler_path):
-            # FIXED: Use Keras for the .h5 model
-            self.model = tf.keras.models.load_model(model_path) 
-            # Scaler still uses joblib as it is a .pkl
-            self.scaler = joblib.load(scaler_path)
-            self.ready = True
-        else:
-            print(f"⚠️ ML files missing at {model_path}. Using fallback logic.")
-            self.ready = False
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))  # server/
+MODEL_PATH = os.path.join(BASE_DIR, "ml_engine", "smart_belt_rf.pkl")
+SCALER_PATH = os.path.join(BASE_DIR, "ml_engine", "scaler.pkl")
+LABEL_MAP_PATH = os.path.join(BASE_DIR, "ml_engine", "label_map.pkl")
 
-    def predict(self, data):
-        if not self.ready:
-            return "WAITING_FOR_BELT"
+# load once at import time
+_model = None
+_scaler = None
+_label_map = None
+_inv_label_map = None
 
-        features = np.array([[
-            data.get('fsr_pct', 0),
-            data.get('present', 0),
-            data.get('motion', 0),
-            data.get('rotation', 0),
-            data.get('system_ok', 0)
-        ]])
+def _load_artifacts():
+    global _model, _scaler, _label_map, _inv_label_map
+    if _model is None:
+        if not os.path.exists(MODEL_PATH):
+            raise FileNotFoundError(f"Model file not found: {MODEL_PATH}")
+        if not os.path.exists(SCALER_PATH):
+            raise FileNotFoundError(f"Scaler file not found: {SCALER_PATH}")
+        if not os.path.exists(LABEL_MAP_PATH):
+            raise FileNotFoundError(f"Label map not found: {LABEL_MAP_PATH}")
 
-        scaled_features = self.scaler.transform(features)
-        
-        # FIXED: Keras models return probabilities, use argmax to get the index
-        prediction_probs = self.model.predict(scaled_features, verbose=0)
-        class_idx = np.argmax(prediction_probs)
-        
-        return self.labels[class_idx]
+        _model = joblib.load(MODEL_PATH)
+        _scaler = joblib.load(SCALER_PATH)
+        _label_map = joblib.load(LABEL_MAP_PATH)
+        # invert mapping: int -> label
+        _inv_label_map = {v: k for k, v in _label_map.items()}
+
+# public API
+def predict_state(sensor_data: dict):
+    """
+    sensor_data must contain numeric keys:
+      - fsr_pct, motion, rotation, trend
+    Returns:
+      {
+        "timestamp": ISO,
+        "ml_raw": "<label name>",
+        "ml_index": <int label>,
+        "ml_prob": <float probability of predicted class>,
+        "probs": {label: prob, ...}
+      }
+    """
+    _load_artifacts()
+
+    # required order of features used during training
+    features = ["fsr_pct", "motion", "rotation", "trend"]
+
+    # put values into a 2D array for scaler / model
+    try:
+        row = [float(sensor_data.get(f, 0.0)) for f in features]
+    except Exception as e:
+        raise ValueError("Sensor values must be numeric") from e
+
+    X = np.array(row).reshape(1, -1)
+    Xs = _scaler.transform(X)  # scaled
+
+    # predict with RF
+    pred_idx = int(_model.predict(Xs)[0])
+    proba = None
+    probs_map = {}
+    if hasattr(_model, "predict_proba"):
+        proba_arr = _model.predict_proba(Xs)[0]
+        proba = float(np.max(proba_arr))
+        # map probs to label names
+        # model.classes_ holds integer labels used in training
+        for idx, p in zip(_model.classes_, proba_arr):
+            label_name = _inv_label_map.get(int(idx), str(idx))
+            probs_map[label_name] = float(p)
+    else:
+        proba = 1.0
+        probs_map[_inv_label_map.get(pred_idx, str(pred_idx))] = 1.0
+
+    return {
+        "timestamp": datetime.now().isoformat(),
+        "ml_raw": _inv_label_map.get(pred_idx, str(pred_idx)),
+        "ml_index": pred_idx,
+        "ml_prob": proba,
+        "probs": probs_map
+    }
