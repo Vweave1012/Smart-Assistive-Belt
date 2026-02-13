@@ -9,9 +9,9 @@ STATE_FILE = os.path.join(BASE_DIR, "logic", "state.json")
 
 # ================= CLINICAL THRESHOLDS (minutes) =================
 # Realistic caregiving intervals
-HUNGER_MINUTES = 1    # 3 hours
-PEE_MINUTES = 1        # 1 hour
-POOP_MINUTES = 1       # 8 hours
+HUNGER_MINUTES = 180    # 3 hours
+PEE_MINUTES = 60        # 1 hour
+POOP_MINUTES = 360       # 6 hours
 
 
 # ================= STATE FILE HANDLING =================
