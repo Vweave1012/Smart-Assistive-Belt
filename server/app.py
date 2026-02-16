@@ -10,18 +10,25 @@ from auth import auth_bp
 from flask_bcrypt import Bcrypt
 import os
 from dotenv import load_dotenv
+from flask_jwt_extended import jwt_required, get_jwt_identity
+
+load_dotenv()
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 CORS(app)
 
-load_dotenv()
+# set secrets from .env (fallback only for local dev)
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY") or "dev_jwt_secret"
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", app.config["JWT_SECRET_KEY"])
 
-app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 jwt = JWTManager(app)
-
 bcrypt = Bcrypt(app)
 
-app.register_blueprint(auth_bp, url_prefix="/api/auth")
+# then register blueprints and the rest of your file...
+from auth import auth_bp
+app.register_blueprint(auth_bp)
+
+
 
 @app.route("/")
 def home():
@@ -32,7 +39,11 @@ def home():
         return "Smart Assistive Belt API"
 
 @app.route("/api/predict", methods=["POST"])
+@jwt_required()
 def api_predict():
+    user_id = get_jwt_identity()
+    print("Prediction requested by user:", user_id)
+
     """
     Expects JSON:
     {

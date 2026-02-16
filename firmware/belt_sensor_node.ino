@@ -2,11 +2,11 @@
 #include <Wire.h>
 
 /* ================= WIFI CONFIG ================= */
-const char* ssid     = "LH-3 2.4";      // 2.4 GHz WiFi
-const char* password = "iter@lh3";
+const char* ssid     = "Redmi10";      // 2.4 GHz WiFi
+const char* password = "12345678";
 
 /* ❗ IMPORTANT: ONLY IP, NO http:// */
-const char* serverIP = "10.90.3.35";
+const char* serverIP = "172.16.100.35";
 const int   serverPort = 5000;
 
 /* ================= MPU6050 ================= */
