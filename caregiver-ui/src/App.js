@@ -432,23 +432,24 @@ const handleReset = async (type) => {
 
         {activeTab === 'alerts' && (
           <div>
-            {/* ===== BELT CONNECTION STATUS BOX ===== */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '15px',
                 marginBottom: '20px',
-                background: activeAlert === "WAITING_FOR_BELT" ? '#fee2e2' : '#dcfce7',
-                borderLeft: `6px solid ${activeAlert === "WAITING_FOR_BELT" ? '#dc2626' : '#16a34a'}`,
+                background: beltConnected ? '#dcfce7' : '#fee2e2',
+                borderLeft: `6px solid ${beltConnected ? '#16a34a' : '#dc2626'}`,
                 padding: '20px',
                 borderRadius: '12px'
               }}
             >
-              <CheckCircle
-                size={32}
-                color={activeAlert === "WAITING_FOR_BELT" ? '#dc2626' : '#16a34a'}
-              />
+              {beltConnected ? (
+                <CheckCircle size={32} color="#16a34a" />
+              ) : (
+                <span style={{ fontSize: '32px', color: '#dc2626' }}>✖</span>
+              )}
+
 
               <div>
                 <h3 style={{ margin: 0 }}>

@@ -5,9 +5,23 @@ from ml_engine.inference import predict_state
 from logic.time_manager import apply_time_logic, update_event, load_state
 from flask_cors import CORS
 import os
+from flask_jwt_extended import JWTManager
+from auth import auth_bp
+from flask_bcrypt import Bcrypt
+import os
+from dotenv import load_dotenv
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 CORS(app)
+
+load_dotenv()
+
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+jwt = JWTManager(app)
+
+bcrypt = Bcrypt(app)
+
+app.register_blueprint(auth_bp, url_prefix="/api/auth")
 
 @app.route("/")
 def home():
