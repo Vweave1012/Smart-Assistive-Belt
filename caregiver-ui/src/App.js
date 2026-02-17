@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react';
 /* Added Utensils, Droplets, Baby for TSL metrics */
 import { Bell, LogOut, Plus, Trash2, Phone, MessageSquare, Activity, Eye, EyeOff, Mail, Lock, Clock, User, CheckCircle, Utensils, Droplets, Baby } from 'lucide-react';
 
+import { loginUser, registerUser, predictState, getState, updateEvent } from "./api";
+
+
+
+
+
 export default function CaregiverApp() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   // --- ADDED STATE FOR ONE-TIME SETUP ---
@@ -28,7 +34,8 @@ export default function CaregiverApp() {
   const [activeAlert, setActiveAlert] = useState("WAITING_FOR_BELT");
   const [timeStats, setTimeStats] = useState({ tslm: 0, tslu: 0, tslb: 0 });
   const [beltConnected, setBeltConnected] = useState(false);
-  const BACKEND_URL = "http://localhost:5000";
+  const BACKEND_URL = "http://127.0.0.1:5000";
+
 ; // Replace with your IPv4
 
   const [alerts, setAlerts] = useState([]);
@@ -51,10 +58,17 @@ export default function CaregiverApp() {
   
   // --- ADDED BACKEND FETCHING FUNCTIONS ---
   // Replace your existing updateFromBackend with this:
-const updateFromBackend = async () => {
-  try {
-    // 1) fetch stored timestamps (ISO strings) from backend
-    const resp = await fetch(`${BACKEND_URL}/api/state`);
+    const updateFromBackend = async () => {
+      try {
+        // 1) fetch stored timestamps (ISO strings) from backend
+        const token = localStorage.getItem("token");
+
+    const resp = await fetch(`${BACKEND_URL}/api/state`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
     const data = await resp.json();
     // data expected: { last_meal: "...", last_pee: "...", last_poop: "..." }
 
@@ -90,74 +104,108 @@ const updateFromBackend = async () => {
 };
 
 // Replace your handleReset with this:
-const handleReset = async (type) => {
-  try {
-    // map UI event name -> final_state expected by backend update_event
-    const map = {
-      meal: "HUNGER",
-      toilet: "PEE",
-      bowel: "POOP"
-    };
-    const final_state = map[type];
-    if (!final_state) return console.warn("Unknown reset type:", type);
+  const handleReset = async (type) => {
+    try {
+      // map UI event name -> final_state expected by backend update_event
+      const map = {
+        meal: "HUNGER",
+        toilet: "PEE",
+        bowel: "POOP"
+      };
+      const final_state = map[type];
+      if (!final_state) return console.warn("Unknown reset type:", type);
 
-    const resp = await fetch(`${BACKEND_URL}/api/update_event`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ final_state })
-    });
+      const token = localStorage.getItem("token");
 
-    if (!resp.ok) {
-      console.warn("Reset API returned not OK:", resp.status);
-    } else {
-      // immediately refresh metrics display
-      updateFromBackend();
+      const resp = await fetch(`${BACKEND_URL}/api/update_event`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ final_state }),
+      });
+
+
+      if (!resp.ok) {
+        console.warn("Reset API returned not OK:", resp.status);
+      } else {
+        // immediately refresh metrics display
+        updateFromBackend();
+      }
+    } catch (err) {
+      console.warn("Reset failed:", err);
     }
-  } catch (err) {
-    console.warn("Reset failed:", err);
-  }
-};
+  };
 
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setAuthError('');
+    setAuthError("");
+
     if (!loginEmail || !loginPassword) {
-      setAuthError('Please fill in all fields');
+      setAuthError("Please fill in all fields");
       return;
     }
-    const user = { id: Date.now(), email: loginEmail, name: loginEmail.split('@')[0], role: 'Caregiver' };
-    setCurrentUser(user);
-    setIsAuthenticated(true);
-    setLoginEmail('');
-    setLoginPassword('');
+
+    try {
+      const res = await loginUser({
+        email: loginEmail,
+        password: loginPassword,
+      });
+
+      if (res.error) {
+        setAuthError(res.error);
+        return;
+      }
+
+      localStorage.setItem("token", res.token);
+
+      setCurrentUser({ name: res.name, email: res.email });
+      setIsAuthenticated(true);
+
+    } catch (err) {
+      setAuthError("Server not reachable");
+    }
   };
 
-  const handleRegister = (e) => {
+
+
+
+
+
+  const handleRegister = async (e) => {
     e.preventDefault();
-    setAuthError('');
-    if (!registerName || !registerEmail || !registerPassword || !registerConfirmPassword) {
-      setAuthError('Please fill in all fields');
-      return;
+    setAuthError("");
+
+    try {
+      await registerUser({
+        name: registerName,
+        email: registerEmail,
+        password: registerPassword,
+      });
+
+      alert("Account created! Please login.");
+      setAuthMode("login");
+
+    } catch (err) {
+      setAuthError(err.message);
     }
-    if (registerPassword.length < 6) {
-      setAuthError('Password must be at least 6 characters');
-      return;
-    }
-    if (registerPassword !== registerConfirmPassword) {
-      setAuthError('Passwords do not match');
-      return;
-    }
-    const user = { id: Date.now(), email: registerEmail, name: registerName, role: 'Caregiver' };
-    setCurrentUser(user);
-    setIsAuthenticated(true);
   };
+
+
+
 
   const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
     setIsAuthenticated(false);
-    setIsFirstSetup(true); // Reset setup for next login
+    setIsFirstSetup(true);
     setCurrentUser(null);
   };
+
+
 
   // --- ADDED SETUP HANDLER ---
   const handleSetupSubmit = (e) => {
@@ -212,11 +260,18 @@ const handleReset = async (type) => {
     setBehavioralNotes(notes => notes.filter(note => note.id !== id));
   };
 
+
   useEffect(() => {
-  updateFromBackend();
-  const id = setInterval(updateFromBackend, 8000);
-  return () => clearInterval(id);
-}, []);
+    const token = localStorage.getItem("token");
+    const user = localStorage.getItem("user");
+
+    if (token && user) {
+      setCurrentUser(JSON.parse(user));
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+
 
   useEffect(() => {
   if (!activeAlert || activeAlert === "NORMAL" || activeAlert === "NO_USER") {
