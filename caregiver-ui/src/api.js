@@ -1,63 +1,48 @@
-const BASE_URL = "http://127.0.0.1:5000";
+const BACKEND_URL = "http://127.0.0.1:5000/api";
 
 // ---------- REGISTER ----------
-export async function registerUser(name, email, password) {
-  const res = await fetch(`${BASE_URL}/register`, {
+export async function registerUser(data) {
+  const res = await fetch(`${BACKEND_URL}/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password })
+    body: JSON.stringify(data),
   });
 
-  const data = await res.json();
-
   if (!res.ok) {
-    throw new Error(data.error || "Registration failed");
+    const txt = await res.text();
+    throw new Error(txt || "Registration failed");
   }
 
-  return data;
+  return res.json();
 }
 
 // ---------- LOGIN ----------
-export async function loginUser(email, password) {
-  const res = await fetch(`${BASE_URL}/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password })
-  });
+export async function loginUser(data) {
+  try {
+    const res = await fetch("http://127.0.0.1:5000/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
 
-  const data = await res.json();
+    // ❗ If user not found → backend sends 401
+    if (res.status === 401) {
+      throw new Error("You don't have an account. Please sign up first.");
+    }
 
-  if (!res.ok) {
-    throw new Error(data.error || "Login failed");
+    // ❗ Any other failure
+    if (!res.ok) {
+      throw new Error("Server error. Try again.");
+    }
+
+    return await res.json();
+  } catch (err) {
+    // ❗ Only real network failure shows this
+    if (err.message === "Failed to fetch") {
+      throw new Error("Server not reachable");
+    }
+
+    throw err;
   }
-
-  return data;
 }
 
-// ---------- GET STATE ----------
-export async function getState() {
-  const res = await fetch(`${BASE_URL}/api/state`);
-  return await res.json();
-}
-
-// ---------- UPDATE EVENT ----------
-export async function updateEvent(final_state) {
-  const res = await fetch(`${BASE_URL}/api/update_event`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ final_state })
-  });
-
-  return await res.json();
-}
-
-// ---------- PREDICT ----------
-export async function predictState(payload) {
-  const res = await fetch(`${BASE_URL}/api/predict`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-
-  return await res.json();
-}

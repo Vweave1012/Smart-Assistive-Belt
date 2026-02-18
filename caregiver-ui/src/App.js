@@ -141,10 +141,10 @@ export default function CaregiverApp() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setAuthError("");
+    setAuthError('');
 
     if (!loginEmail || !loginPassword) {
-      setAuthError("Please fill in all fields");
+      setAuthError('Please fill in all fields');
       return;
     }
 
@@ -154,29 +154,31 @@ export default function CaregiverApp() {
         password: loginPassword,
       });
 
-      if (res.error) {
-        setAuthError(res.error);
-        return;
-      }
-
-      localStorage.setItem("token", res.token);
-
-      setCurrentUser({ name: res.name, email: res.email });
+      // ✅ login success → store user + go dashboard
+      setCurrentUser(res);
       setIsAuthenticated(true);
 
+      setLoginEmail('');
+      setLoginPassword('');
     } catch (err) {
-      setAuthError("Server not reachable");
+      // ✅ THIS prints the real message on screen
+      setAuthError(err.message);
     }
   };
 
-
-
-
-
-
   const handleRegister = async (e) => {
     e.preventDefault();
-    setAuthError("");
+    setAuthError('');
+
+    if (!registerName || !registerEmail || !registerPassword || !registerConfirmPassword) {
+      setAuthError('Please fill in all fields');
+      return;
+    }
+
+    if (registerPassword !== registerConfirmPassword) {
+      setAuthError('Passwords do not match');
+      return;
+    }
 
     try {
       await registerUser({
@@ -185,14 +187,21 @@ export default function CaregiverApp() {
         password: registerPassword,
       });
 
-      alert("Account created! Please login.");
-      setAuthMode("login");
+      // ✅ switch to login tab
+      setAuthMode('login');
 
+      // ✅ GREEN success message
+      setAuthError('SUCCESS: Account created successfully. You can now log in.');
+
+      // clear fields
+      setRegisterName('');
+      setRegisterEmail('');
+      setRegisterPassword('');
+      setRegisterConfirmPassword('');
     } catch (err) {
       setAuthError(err.message);
     }
   };
-
 
 
 
@@ -360,7 +369,23 @@ export default function CaregiverApp() {
             <button onClick={() => { setAuthMode('register'); setAuthError(''); }} className="tab-btn" style={{ flex: 1, border: 'none', background: authMode === 'register' ? 'white' : 'transparent', color: authMode === 'register' ? '#3b82f6' : '#6b7280', padding: '10px', borderRadius: '6px', cursor: 'pointer' }}>Sign Up</button>
           </div>
 
-          {authError && <div style={{ background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px', marginBottom: '20px', color: '#991b1b', fontSize: '14px' }}>{authError}</div>}
+          {authError && (
+            <div
+              style={{
+                background: authError.startsWith('SUCCESS') ? '#dcfce7' : '#fee2e2',
+                border: authError.startsWith('SUCCESS') ? '1px solid #22c55e' : '1px solid #fecaca',
+                color: authError.startsWith('SUCCESS') ? '#166534' : '#991b1b',
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '20px',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+            >
+              {authError.replace('SUCCESS: ', '')}
+            </div>
+          )}
+
 
           {authMode === 'login' && (
             <form onSubmit={handleLogin}>
