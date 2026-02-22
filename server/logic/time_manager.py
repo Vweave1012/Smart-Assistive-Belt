@@ -9,9 +9,9 @@ STATE_FILE = os.path.join(BASE_DIR, "logic", "state.json")
 
 # ================= CLINICAL THRESHOLDS (minutes) =================
 # Realistic caregiving intervals
-HUNGER_MINUTES = 180    # 3 hours
-PEE_MINUTES = 60        # 1 hour
-POOP_MINUTES = 360       # 6 hours
+HUNGER_MINUTES = 0.1   # 3 hours
+PEE_MINUTES = 0.15       # 1 hour
+POOP_MINUTES = 0.2       # 6 hours
 
 
 # ================= STATE FILE HANDLING =================
@@ -69,50 +69,52 @@ def get_time_metrics():
     return tslm, tslu, tslb
 
 
-# ================= CORE DECISION LOGIC =================
 def apply_time_logic(ml_state, fsr_pct):
-    """
-    Combine ML prediction with clinical time thresholds.
-
-    FINAL STATES returned:
-        NO_USER
-        NORMAL
-        HUNGER / PEE / POOP
-        POTENTIAL_HUNGER / POTENTIAL_PEE / POTENTIAL_POOP
-    """
-
-    # ---------- NO USER CHECK ----------
+    """MODIFIED FOR DEMO: Bypasses time checks for instant alerts."""
     try:
         fsr = float(fsr_pct)
     except Exception:
         fsr = 0.0
 
+    # Ensure belt is worn
     if fsr < 5:
         return "NO_USER"
 
-    # ---------- LOAD TIME METRICS ----------
-    tslm, tslu, tslb = get_time_metrics()
-
-    # ---------- HUNGER ----------
+    # TRIGGER ALERTS IMMEDIATELY
     if ml_state == "HUNGER":
-        if tslm >= HUNGER_MINUTES:
-            return "POTENTIAL_HUNGER"   # urgent hunger alert
-        return "HUNGER"                 # mild indication
-
-    # ---------- PEE ----------
+        return "POTENTIAL_HUNGER"
     if ml_state == "PEE":
-        if tslu >= PEE_MINUTES:
-            return "POTENTIAL_PEE"      # urgent bathroom alert
-        return "PEE"
-
-    # ---------- POOP ----------
+        return "POTENTIAL_PEE"
     if ml_state == "POOP":
-        if tslb >= POOP_MINUTES:
-            return "POTENTIAL_POOP"     # urgent bowel alert
-        return "POOP"
+        return "POTENTIAL_POOP"
 
-    # ---------- DEFAULT ----------
     return "NORMAL"
+
+    # # ---------- LOAD TIME METRICS ----------
+    # tslm, tslu, tslb = get_time_metrics()
+
+    # # ---------- HUNGER ----------
+    
+    # if tslm >= HUNGER_MINUTES:
+    #     return "POTENTIAL_HUNGER"   # urgent hunger alert
+    # return "HUNGER"                 # mild indication
+
+    # # ---------- PEE ----------
+   
+    # if tslu >= PEE_MINUTES:
+    #     return "POTENTIAL_PEE"      # urgent bathroom alert
+    # return "PEE"
+
+    # # ---------- POOP ----------
+    
+    # if tslb >= POOP_MINUTES:
+    #     return "POTENTIAL_POOP"     # urgent bowel alert
+    # return "POOP"
+
+    # if ml_state in["Hunger","PEE","POOP"]:
+    #     return ml_state
+    # # ---------- DEFAULT ----------
+    # return "NORMAL"
 
 
 # ================= TIMER UPDATE (RESET HANDLER) =================

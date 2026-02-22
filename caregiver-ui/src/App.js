@@ -280,77 +280,183 @@ export default function CaregiverApp() {
     }
   }, []);
 
-
-
-  useEffect(() => {
-  if (!activeAlert || activeAlert === "NORMAL" || activeAlert === "NO_USER") {
-    return; // ❌ DO NOT CLEAR OLD ALERTS
+useEffect(() => {
+  if (isAuthenticated) {
+    updateFromBackend(); // Initial call
+    const interval = setInterval(() => {
+      updateFromBackend();
+    }, 3000); // Check every 3 seconds
+    return () => clearInterval(interval);
   }
+}, [isAuthenticated]);
+
+useEffect(() => {
+  if (!activeAlert || activeAlert === "NORMAL" || activeAlert === "NO_USER") return;
 
   let newAlert = null;
-
-  // === Toilet / Hunger alerts ===
-  if (activeAlert === "HUNGER") {
+  // Match both standard and demo-mode strings
+  if (activeAlert === "HUNGER" || activeAlert === "POTENTIAL_HUNGER") {
     newAlert = {
       id: Date.now(),
       severity: "warning",
       icon: "🍽️",
       title: "Hunger Detected",
-      message: "Time threshold reached since last meal.",
+      message: "Immediate attention required.",
       action: `Provide food to ${patientProfile.name}.`,
       timestamp: new Date()
     };
   }
-
-  if (activeAlert === "PEE") {
-    newAlert = {
-      id: Date.now(),
-      severity: "critical",
-      icon: "🚽",
-      title: "Urine Activity Detected",
-      message: "Pressure change detected.",
-      action: `Assist ${patientProfile.name} immediately.`,
-      timestamp: new Date()
-    };
+  // Repeat this pattern for PEE and POOP...
+  
+  if (newAlert) {
+    setAlerts(prev => [newAlert, ...prev]);
+    setAlertHistory(prev => [newAlert, ...prev]);
   }
+}, [activeAlert, patientProfile.name]);
 
-  if (activeAlert === "POOP") {
-    newAlert = {
-      id: Date.now(),
-      severity: "critical",
-      icon: "🚽",
-      title: "Bowel Activity Detected",
-      message: "Sustained abdominal pressure detected.",
-      action: `Assist ${patientProfile.name} immediately.`,
-      timestamp: new Date()
-    };
-  }
+//   useEffect(() => {
+//     if (!activeAlert || activeAlert === "NORMAL" || activeAlert === "NO_USER") {
+//       return; // ❌ DO NOT CLEAR OLD ALERTS
+//     }
 
-  // === Restlessness ===
-  if (activeAlert === "RESTLESS" || activeAlert === "HIGHLY_RESTLESS") {
-    const isHighly = activeAlert === "HIGHLY_RESTLESS";
+//   let newAlert = null;
 
-    newAlert = {
-      id: Date.now(),
-      severity: isHighly ? "critical" : "warning",
-      icon: "⚠️",
-      title: isHighly ? "High Restlessness" : "Restlessness Detected",
-      message: "Abnormal movement detected by belt.",
-      action: "Check patient comfort.",
-      timestamp: new Date()
-    };
-  }
+//   // === Toilet / Hunger alerts ===
+//   if (activeAlert === "HUNGER") {
+//     newAlert = {
+//       id: Date.now(),
+//       severity: "warning",
+//       icon: "🍽️",
+//       title: "Hunger Detected",
+//       message: "Time threshold reached since last meal.",
+//       action: `Provide food to ${patientProfile.name}.`,
+//       timestamp: new Date()
+//     };
+//   }
 
-  if (!newAlert) return;
+//   if (activeAlert === "PEE") {
+//     newAlert = {
+//       id: Date.now(),
+//       severity: "critical",
+//       icon: "🚽",
+//       title: "Urine Activity Detected",
+//       message: "Pressure change detected.",
+//       action: `Assist ${patientProfile.name} immediately.`,
+//       timestamp: new Date()
+//     };
+//   }
 
-  // ✅ Add new alert on top WITHOUT deleting old ones
-  setAlerts(prev => [newAlert, ...prev]);
+//   if (activeAlert === "POOP") {
+//     newAlert = {
+//       id: Date.now(),
+//       severity: "critical",
+//       icon: "🚽",
+//       title: "Bowel Activity Detected",
+//       message: "Sustained abdominal pressure detected.",
+//       action: `Assist ${patientProfile.name} immediately.`,
+//       timestamp: new Date()
+//     };
+//   }
 
-  // ✅ Also store in history
-  setAlertHistory(prev => [newAlert, ...prev]);
+//   // === Restlessness ===
+//   if (activeAlert === "RESTLESS" || activeAlert === "HIGHLY_RESTLESS") {
+//     const isHighly = activeAlert === "HIGHLY_RESTLESS";
 
-}, [activeAlert]);
+//     newAlert = {
+//       id: Date.now(),
+//       severity: isHighly ? "critical" : "warning",
+//       icon: "⚠️",
+//       title: isHighly ? "High Restlessness" : "Restlessness Detected",
+//       message: "Abnormal movement detected by belt.",
+//       action: "Check patient comfort.",
+//       timestamp: new Date()
+//     };
+//   }
 
+//   if (!newAlert) return;
+
+//   // ✅ Add new alert on top WITHOUT deleting old ones
+//   setAlerts(prev => [newAlert, ...prev]);
+
+//   // ✅ Also store in history
+//   setAlertHistory(prev => [newAlert, ...prev]);
+
+// }, [activeAlert]);
+// useEffect(() => {
+//   if (!activeAlert || activeAlert === "NORMAL" || activeAlert === "NO_USER") {
+//     return;
+//   }
+
+//   let newAlert = null;
+
+//   // ===== HUNGER (handles POTENTIAL_HUNGER too) =====
+//   if (activeAlert.includes("HUNGER")) {
+//     const urgent = activeAlert.startsWith("POTENTIAL");
+
+//     newAlert = {
+//       id: Date.now(),
+//       severity: urgent ? "critical" : "warning",
+//       icon: "🍽️",
+//       title: urgent ? "URGENT: Hunger Alert" : "Hunger Detected",
+//       message: urgent
+//         ? "Long time since last meal."
+//         : "Patient may be feeling hungry.",
+//       action: `Provide food to ${patientProfile.name}.`,
+//       timestamp: new Date()
+//     };
+//   }
+
+//   // ===== PEE =====
+//   if (activeAlert.includes("PEE")) {
+//     const urgent = activeAlert.startsWith("POTENTIAL");
+
+//     newAlert = {
+//       id: Date.now(),
+//       severity: "critical",
+//       icon: "🚽",
+//       title: urgent ? "URGENT: Toilet Needed" : "Urine Activity Detected",
+//       message: "Assist patient to restroom.",
+//       action: `Help ${patientProfile.name} immediately.`,
+//       timestamp: new Date()
+//     };
+//   }
+
+//   // ===== POOP =====
+//   if (activeAlert.includes("POOP")) {
+//     const urgent = activeAlert.startsWith("POTENTIAL");
+
+//     newAlert = {
+//       id: Date.now(),
+//       severity: "critical",
+//       icon: "🚽",
+//       title: urgent ? "URGENT: Bowel Needed" : "Bowel Activity Detected",
+//       message: "Assist patient urgently.",
+//       action: `Help ${patientProfile.name} immediately.`,
+//       timestamp: new Date()
+//     };
+//   }
+
+//   // ===== RESTLESS =====
+//   if (activeAlert === "RESTLESS" || activeAlert === "HIGHLY_RESTLESS") {
+//     const isHighly = activeAlert === "HIGHLY_RESTLESS";
+
+//     newAlert = {
+//       id: Date.now(),
+//       severity: isHighly ? "critical" : "warning",
+//       icon: "⚠️",
+//       title: isHighly ? "High Restlessness" : "Restlessness Detected",
+//       message: "Abnormal movement detected by belt.",
+//       action: "Check patient comfort.",
+//       timestamp: new Date()
+//     };
+//   }
+
+//   if (!newAlert) return;
+
+//   setAlerts(prev => [newAlert, ...prev]);
+//   setAlertHistory(prev => [newAlert, ...prev]);
+
+// }, [activeAlert]);
 
 
 

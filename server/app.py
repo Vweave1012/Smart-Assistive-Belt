@@ -1,16 +1,22 @@
 # server/app.py
+# server/app.py
 from flask import Flask, request, jsonify, send_from_directory
 from werkzeug.exceptions import BadRequest
-from ml_engine.inference import predict_state
-from logic.time_manager import apply_time_logic, update_event, load_state
 from flask_cors import CORS
 import os
-from flask_jwt_extended import JWTManager
-from auth import auth_bp
+from datetime import datetime  # ADDED HERE
+from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity
 from flask_bcrypt import Bcrypt
-import os
 from dotenv import load_dotenv
-from flask_jwt_extended import jwt_required, get_jwt_identity
+
+# Import ML engine
+from ml_engine.inference import predict_state
+
+# Import all needed logic functions - ADDED save_state HERE
+from logic.time_manager import apply_time_logic, update_event, load_state, save_state 
+
+# Auth blueprint
+from auth import auth_bp
 
 load_dotenv()
 
@@ -36,30 +42,15 @@ def home():
         return send_from_directory(app.template_folder, "index.html")
     except Exception:
         return "Smart Assistive Belt API"
-
+    
 @app.route("/api/predict", methods=["POST"])
-@jwt_required()
+# @jwt_required()  # Commented for demo if ESP32 doesn't send token
 def api_predict():
-    user_id = get_jwt_identity()
-    print("Prediction requested by user:", user_id)
-
-    """
-    Expects JSON:
-    {
-      "fsr_pct": float,
-      "motion": float,
-      "rotation": float,
-      "trend": float
-    }
-    Returns:
-    {
-      timestamp, ml_raw, ml_prob, probs, final_state
-    }
-    """
     try:
         data = request.get_json()
         if not data:
             raise BadRequest("JSON body required")
+            
         # ML prediction
         ml = predict_state(data)
         ml_raw = ml["ml_raw"]
@@ -70,17 +61,14 @@ def api_predict():
         final = apply_time_logic(ml_raw, data.get("fsr_pct", 0.0))
 
         # ===== SAVE FINAL STATE FOR FRONTEND =====
-        from logic.time_manager import load_state, save_state
-        from datetime import datetime
-
+        # (Removed local imports from here - they are now at the top)
         try:
             state = load_state()
             state["last_final_state"] = final
             state["last_final_state_time"] = datetime.now().isoformat()
-            save_state(state)
+            save_state(state)  # This will now work!
         except Exception as e:
             app.logger.warning(f"Failed to store final_state: {e}")
-
 
         resp = {
             "timestamp": ml["timestamp"],
@@ -92,6 +80,61 @@ def api_predict():
         return jsonify(resp)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+# @app.route("/api/predict", methods=["POST"])
+# @jwt_required()
+# def api_predict():
+#     user_id = get_jwt_identity()
+#     print("Prediction requested by user:", user_id)
+
+#     """
+#     Expects JSON:
+#     {
+#       "fsr_pct": float,
+#       "motion": float,
+#       "rotation": float,
+#       "trend": float
+#     }
+#     Returns:
+#     {
+#       timestamp, ml_raw, ml_prob, probs, final_state
+#     }
+#     """
+#     try:
+#         data = request.get_json()
+#         if not data:
+#             raise BadRequest("JSON body required")
+#         # ML prediction
+#         ml = predict_state(data)
+#         ml_raw = ml["ml_raw"]
+#         ml_prob = ml.get("ml_prob", None)
+#         probs = ml.get("probs", {})
+
+#         # final validation by time_manager
+#         final = apply_time_logic(ml_raw, data.get("fsr_pct", 0.0))
+
+#         # ===== SAVE FINAL STATE FOR FRONTEND =====
+#         from logic.time_manager import load_state, save_state
+#         from datetime import datetime
+
+#         try:
+#             state = load_state()
+#             state["last_final_state"] = final
+#             state["last_final_state_time"] = datetime.now().isoformat()
+#             save_state(state)
+#         except Exception as e:
+#             app.logger.warning(f"Failed to store final_state: {e}")
+
+
+#         resp = {
+#             "timestamp": ml["timestamp"],
+#             "ml_raw": ml_raw,
+#             "ml_prob": ml_prob,
+#             "probs": probs,
+#             "final_state": final
+#         }
+#         return jsonify(resp)
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 400
 
 @app.route("/api/update_event", methods=["POST"])
 def api_update_event():
