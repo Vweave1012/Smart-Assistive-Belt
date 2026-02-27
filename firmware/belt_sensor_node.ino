@@ -2,12 +2,14 @@
 #include <Wire.h>
 
 /* ================= WIFI CONFIG ================= */
-const char* ssid     = "Redmi10";      // 2.4 GHz WiFi
+const char* ssid     = "Sherly";
 const char* password = "12345678";
 
-/* ❗ IMPORTANT: ONLY IP, NO http:// */
-const char* serverIP = "172.16.100.35";
+/* ❗ ONLY IP — NO http:// */
+const char* serverIP = "10.106.155.33";
 const int   serverPort = 5000;
+
+
 
 /* ================= MPU6050 ================= */
 #define MPU_ADDR 0x68
@@ -23,9 +25,6 @@ const int   serverPort = 5000;
 #define FSR_MIN        80
 #define FSR_MAX        3000
 #define PRESENCE_TH    10
-#define MOTION_TH      2000
-#define ROTATION_TH    4000
-
 WiFiClient client;
 
 /* ================= WIFI CONNECT ================= */
@@ -91,6 +90,8 @@ void setup() {
   connectWiFi();
 
   Wire.begin(SDA_PIN, SCL_PIN);
+
+  // Wake MPU6050
   Wire.beginTransmission(MPU_ADDR);
   Wire.write(0x6B);
   Wire.write(0x00);
@@ -110,9 +111,7 @@ void loop() {
   int fsrAvg = (fsr1 + fsr2 + fsr3) / 3;
   int pressurePct = map(fsrAvg, FSR_MIN, FSR_MAX, 0, 100);
   pressurePct = constrain(pressurePct, 0, 100);
-
-  bool present = pressurePct > PRESENCE_TH;
-
+  
   long motion = 0, rotation = 0;
   bool mpuOK = readMPU(motion, rotation);
 
@@ -120,27 +119,37 @@ void loop() {
 
   if (systemOK && client.connect(serverIP, serverPort)) {
 
-    String json = "{";
-    json += "\"fsr_pct\":" + String(pressurePct) + ",";
-    json += "\"motion\":" + String(motion) + ",";
-    json += "\"rotation\":" + String(rotation) + ",";
-    json += "\"trend\":0";
-    json += "}";
+    // ===== JSON BODY =====
+    String json =
+      "{\"fsr_pct\":" + String(pressurePct) +
+      ",\"motion\":" + String(motion) +
+      ",\"rotation\":" + String(rotation) +
+      ",\"trend\":0}";
 
+    // 🔍 DEBUG PRINT (VERY IMPORTANT)
+    Serial.println("Sending JSON:");
+    Serial.println(json);
 
-    client.println("POST /api/predict HTTP/1.1");
-    client.print("Host: "); client.println(serverIP);
-    client.println("Content-Type: application/json");
-    client.println("Connection: close");
-    client.print("Content-Length: ");
-    client.println(json.length());
-    client.println();
-    client.println(json);
+    // ===== COMPLETE HTTP REQUEST IN ONE STRING =====
+    String request =
+      "POST /api/predict HTTP/1.1\r\n"
+      "Host: " + String(serverIP) + "\r\n"
+      "Content-Type: application/json\r\n"
+      "Content-Length: " + String(json.length()) + "\r\n"
+      "Connection: close\r\n"
+      "\r\n" +
+      json;
 
-    Serial.println("✅ Data sent");
+    client.print(request);
 
-    while (client.available()) {
-      Serial.println(client.readStringUntil('\n'));
+    Serial.println("✅ Data sent to server");
+
+    // ===== READ RESPONSE =====
+    while (client.connected() || client.available()) {
+      if (client.available()) {
+        String line = client.readStringUntil('\n');
+        Serial.println(line);
+      }
     }
 
     client.stop();

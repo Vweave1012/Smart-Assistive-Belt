@@ -45,40 +45,40 @@ def home():
     
 @app.route("/api/predict", methods=["POST"])
 # @jwt_required()  # Commented for demo if ESP32 doesn't send token
+@app.route("/api/predict", methods=["POST"])
 def api_predict():
+
     try:
         data = request.get_json()
+
         if not data:
-            raise BadRequest("JSON body required")
-            
+            return jsonify({"error": "No JSON received"}), 400
+
+        print("Received from ESP32:", data)
+
         # ML prediction
         ml = predict_state(data)
+
         ml_raw = ml["ml_raw"]
-        ml_prob = ml.get("ml_prob", None)
+        ml_prob = ml.get("ml_prob")
         probs = ml.get("probs", {})
 
-        # final validation by time_manager
-        final = apply_time_logic(ml_raw, data.get("fsr_pct", 0.0))
+        # Apply time logic
+        final = apply_time_logic(ml_raw, data.get("fsr_pct", 0))
 
-        # ===== SAVE FINAL STATE FOR FRONTEND =====
-        # (Removed local imports from here - they are now at the top)
-        try:
-            state = load_state()
-            state["last_final_state"] = final
-            state["last_final_state_time"] = datetime.now().isoformat()
-            save_state(state)  # This will now work!
-        except Exception as e:
-            app.logger.warning(f"Failed to store final_state: {e}")
+        # Save state
+        state = load_state()
+        state["last_final_state"] = final
+        state["last_final_state_time"] = datetime.now().isoformat()
+        save_state(state)
 
-        resp = {
-            "timestamp": ml["timestamp"],
-            "ml_raw": ml_raw,
-            "ml_prob": ml_prob,
-            "probs": probs,
-            "final_state": final
-        }
-        return jsonify(resp)
+        return jsonify({
+            "final_state": final,
+            "ml_raw": ml_raw
+        })
+
     except Exception as e:
+        print("ERROR:", e)
         return jsonify({"error": str(e)}), 400
 # @app.route("/api/predict", methods=["POST"])
 # @jwt_required()
