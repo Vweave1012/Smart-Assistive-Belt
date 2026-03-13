@@ -33,7 +33,12 @@ const translations = {
   ur: { title: "کیئر پلس", systemStatus: "مریض کی نگرانی کا نظام", connected: "بیلٹ منسلک ہے", disconnected: "بیلٹ منقطع ہو گیا", sinceMeal: "آخری کھانے کے بعد سے", sinceUrine: "آخری پیشاب کے بعد سے", sinceBowel: "آخری فضلے کے بعد سے", alerts: "الرٹس", medications: "ادویات", notes: "کلینیکل نوٹس", logout: "لاگ آؤٹ" },
   or: { title: "କେୟାର ପଲ୍ସ", systemStatus: "ରୋଗୀ ନିରୀକ୍ଷଣ ପ୍ରଣାଳୀ", connected: "ବେଲ୍ଟ ସଂଯୁକ୍ତ ଅଛି", disconnected: "ବେଲ୍ଟ ବିଚ୍ଛିନ୍ନ ହୋଇଛି", sinceMeal: "ଶେଷ ଭୋଜନ ପରଠାରୁ", sinceUrine: "ଶେଷ ପରିସ୍ରା ପରଠାରୁ", sinceBowel: "ଶେଷ ମଳତ୍ୟାଗ ପରଠାରୁ", alerts: "ସତର୍କତା", medications: "ଓଷଧ", notes: "କ୍ଲିନିକାଲ୍ ନୋଟ୍", logout: "ଲଗ୍ ଆଉଟ୍" },
   doi: { title: "केयर पल्स", systemStatus: "मरीज निगरानी प्रणाली", connected: "बेल्ट जुड़ी दी ऐ", disconnected: "बेल्ट कटी दी ऐ", sinceMeal: "खादा खादे शा बाद", sinceUrine: "पेशाब शा बाद", sinceBowel: "शौच शा बाद", alerts: "अलर्ट", medications: "दवाइयां", notes: "क्लिनिकल नोट्स", logout: "लाग आउट" },
-  brx: { title: "केयर पल्स", systemStatus: "साग्लोब नायदिं सिस्टम", connected: "बेल्ट फोनांजाबाय", disconnected: "बेल्ट सिगाइबाय", sinceMeal: "जोबथा जाखांनायनि उनाव", sinceUrine: "जोबथा हासुयनायनि उनाव", sinceBowel: "जोबथा खिनायनि उनाव", alerts: "एलेर्ट", medications: "मुलिफोर", notes: "क्लिनिकल नोट", logout: "लोग आउट" }
+  brx: { title: "केयर पल्स", systemStatus: "साग्लोब नायदिं सिस्टम", connected: "बेल्ट फोनांजाबाय", disconnected: "बेल्ट सिगाइबाय", sinceMeal: "जोबथा जाखांनायनि उनाव", sinceUrine: "जोबथा हासुयनायनि उनाव", sinceBowel: "जोबथा खिनायनि उनाव", alerts: "एलेर्ट", medications: "मुलिफोर", notes: "क्लिनिकल नोट", logout: "लोग आउट" },
+  sa: { title: "केयरपल्स", systemStatus: "रुग्ण-निरीक्षण-तन्त्रम्", connected: "पट्टी संलग्ना अस्ति", disconnected: "पट्टी विच्छिन्ना अस्ति", sinceMeal: "अन्तिम-भोजनात्", sinceUrine: "अन्तिम-मूत्रविसर्जनात्", sinceBowel: "अन्तिम-मलविसर्जनात्", alerts: "सचेतकाः", medications: "औषधानि", notes: "क्लिनिकल टिप्पणी", logout: "निर्गमनम्" },
+  mai: { title: "केयरपल्स", systemStatus: "रोगी निगरानी प्रणाली", connected: "बेल्ट जुड़ल अछि", disconnected: "बेल्ट विच्छेदित अछि", sinceMeal: "अंतिम भोजन सँ", sinceUrine: "अंतिम पिसाब सँ", sinceBowel: "अंतिम शौच सँ", alerts: "अलर्ट", medications: "दवाइयाँ", notes: "क्लिनिकल नोट्स", logout: "लग आउट" },
+  kok: { title: "केअरपल्स", systemStatus: "दुयेंती देखरेख वेवस्था", connected: "बेल्ट जोडिल्लो आसा", disconnected: "बेल्ट तोडिल्लो आसा", sinceMeal: "निमाणें जेवण जाले उपरांत", sinceUrine: "निमाणी लघवी जाले उपरांत", sinceBowel: "निमाणें शौच जाले उपरांत", alerts: "शिटकावणी", medications: "वखदां", notes: "क्लिनिकल नोट्स", logout: "लॉग आउट" },
+  ks: { title: "کیئر پلس", systemStatus: "مریض مانیٹرنگ سسٹم", connected: "بیلٹ چھُ جُڑِتھ", disconnected: "بیلٹ چھُ الگ گومُت", sinceMeal: "آخری کھؠن پتہ", sinceUrine: "آخری پیشاب پتہ", sinceBowel: "آخری پاخانہ پتہ", alerts: "الرٹس", medications: "دوا", notes: "کلینیکل نوٹس", logout: "لاگ آؤٹ" },
+  sd: { title: "ڪيئر پلس", systemStatus: "مريض جي نگراني جو نظام", connected: "بيلٽ ڳنڍيل آهي", disconnected: "بيلٽ ڪٽيل آهي", sinceMeal: "آخري کاڌي کان وٺي", sinceUrine: "آخري پيشاب کان وٺي", sinceBowel: "آخري حاجت کان وٺي", alerts: "الرٽس", medications: "دوايون", notes: "ڪلينڪل نوٽس", logout: "لاگ آئوٹ" }
 };
  
 
@@ -652,6 +657,11 @@ useEffect(() => {
                 <option value="or">ଓଡ଼ିଆ (Odia)</option>
                 <option value="doi">डोगरी (Dogri)</option>
                 <option value="brx">बड़ो (Bodo)</option>
+                <option value="sa">संस्कृतम् (Sanskrit)</option>
+                <option value="mai">मैथिली (Maithili)</option>
+                <option value="kok">कोंकणी (Konkani)</option>
+                <option value="ks">کٲشُر (Kashmiri)</option>
+                <option value="sd">سنڌي (Sindhi)</option>
                 </optgroup>
               </select>
 
