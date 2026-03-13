@@ -55,7 +55,8 @@ export default function CaregiverApp() {
     name: '',
     disorder: '',
     age: '',
-    caregiverName: ''
+    caregiverName: '',
+    PhoneNumber: ''
   });
 
   const [authMode, setAuthMode] = useState('login');
@@ -599,6 +600,17 @@ useEffect(() => {
             <div style={{ marginBottom: '25px' }}>
               <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Caregiver Name</label>
               <input type="text" value={patientProfile.caregiverName} onChange={(e) => setPatientProfile({...patientProfile, caregiverName: e.target.value})} placeholder="Your Name" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }} />
+
+            </div>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>Patient/Emergency Contact No.</label>
+              <input 
+                type="tel" 
+                value={patientProfile.phoneNumber} 
+                onChange={(e) => setPatientProfile({...patientProfile, phoneNumber: e.target.value})} 
+                placeholder="e.g. +91 9876543210" 
+                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db' }} 
+              />
             </div>
             <button type="submit" style={{ width: '100%', padding: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Start Monitoring</button>
           </form>
@@ -668,7 +680,7 @@ useEffect(() => {
               <button onClick={handleLogout} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
                 {t.logout}
               </button>
-            </div></div>
+            </div>
         
         <div style={{ background: '#1e293b', marginTop: '20px', padding: '15px 0' }}>
           <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 20px', display: 'flex', gap: '40px' }}>
@@ -679,12 +691,31 @@ useEffect(() => {
         </div>
       </div>
 
-      <div style={{ maxWidth: '900px', margin: '30px auto', padding: '0 20px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '30px' }}>
-          <button style={{ background: 'white', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', cursor: 'pointer shadow' }}><Phone size={28} color="#3b82f6" /><span>Call Patient</span></button>
-          <button style={{ background: 'white', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', cursor: 'pointer shadow' }}><MessageSquare size={28} color="#10b981" /><span>Message</span></button>
-          <button onClick={() => setSoundEnabled(!soundEnabled)} style={{ background: soundEnabled ? '#eff6ff' : 'white', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', cursor: 'pointer shadow' }}><Bell size={28} color={soundEnabled ? '#3b82f6' : '#9ca3af'} /><span>{soundEnabled ? 'Alerts On' : 'Alerts Off'}</span></button>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginBottom: '30px' }}>
+  
+  {/* Call Button */}
+  <a href={`tel:${patientProfile.phoneNumber}`} style={{ textDecoration: 'none' }}>
+    <button style={{ width: '100%', background: 'white', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', cursor: 'pointer shadow' }}>
+      <Phone size={28} color="#3b82f6" />
+      <span>{t.callPatient || "Call Patient"}</span>
+    </button>
+  </a>
+
+  {/* SMS Button */}
+  <a href={`sms:${patientProfile.phoneNumber}?body=Hello, this is your CarePulse monitor. How are you feeling?`} style={{ textDecoration: 'none' }}>
+    <button style={{ width: '100%', background: 'white', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', cursor: 'pointer shadow' }}>
+      <MessageSquare size={28} color="#10b981" />
+      <span>{t.message || "Message"}</span>
+    </button>
+  </a>
+
+  {/* Alerts Toggle Button */}
+  <button onClick={() => setSoundEnabled(!soundEnabled)} style={{ background: soundEnabled ? '#eff6ff' : 'white', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', cursor: 'pointer shadow' }}>
+    <Bell size={28} color={soundEnabled ? '#3b82f6' : '#9ca3af'} />
+    <span>{soundEnabled ? 'Alerts On' : 'Alerts Off'}</span>
+  </button>
+
+</div>
 
         {/* --- ADDED CONTEXTUAL METRICS GRID --- */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '30px' }}>
