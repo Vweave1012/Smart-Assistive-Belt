@@ -4,12 +4,46 @@ import { Bell, LogOut, Plus, Trash2, Phone, MessageSquare, Activity, Eye, EyeOff
 
 import { loginUser, registerUser, predictState, getState, updateEvent } from "./api";
 
+const translations = {
+  // --- International ---
+  en: { title: "CarePulse", systemStatus: "Patient Monitoring System", connected: "BELT CONNECTED", disconnected: "BELT DISCONNECTED", sinceMeal: "Since Last Meal", sinceUrine: "Since Last Urine", sinceBowel: "Since Last Bowel", alerts: "Alerts", medications: "Medications", notes: "Clinical Notes", logout: "Logout" },
+  es: { title: "CarePulse", systemStatus: "Sistema de Monitoreo", connected: "CINTURÓN CONECTADO", disconnected: "CINTURÓN DESCONECTADO", sinceMeal: "Desde la última comida", sinceUrine: "Desde la última orina", sinceBowel: "Desde la última deposición", alerts: "Alertas", medications: "Medicamentos", notes: "Notas Clínicas", logout: "Cerrar Sesión" },
+  fr: { title: "CarePulse", systemStatus: "Système de Surveillance", connected: "CEINTURE CONNECTÉE", disconnected: "CEINTURE DÉCONNECTÉE", sinceMeal: "Depuis le dernier repas", sinceUrine: "Depuis la dernière urine", sinceBowel: "Depuis la dernière selle", alerts: "Alertes", medications: "Médicaments", notes: "Notes Cliniques", logout: "Déconnexion" },
+  de: { title: "CarePulse", systemStatus: "Patientenüberwachung", connected: "GÜRTEL VERBUNDEN", disconnected: "GÜRTEL TRENNUNG", sinceMeal: "Seit der letzten Mahlzeit", sinceUrine: "Seit dem letzten Urin", sinceBowel: "Seit dem letzten Stuhlgang", alerts: "Warnungen", medications: "Medikamente", notes: "Klinische Notizen", logout: "Abmelden" },
+  zh: { title: "CarePulse", systemStatus: "患者监测系统", connected: "腰带已连接", disconnected: "腰带已断开", sinceMeal: "自上次进食以来", sinceUrine: "自上次排尿以来", sinceBowel: "自上次排便以来", alerts: "警报", medications: "药物", notes: "临床笔记", logout: "登出" },
+  ar: { title: "CarePulse", systemStatus: "نظام مراقبة المريض", connected: "الحزام متصل", disconnected: "الحزام مقطوع", sinceMeal: "منذ آخر وجبة", sinceUrine: "منذ آخر تبول", sinceBowel: "منذ آخر تبرز", alerts: "تنبيهات", medications: "أدوية", notes: "ملاحظات سريرية", logout: "تسجيل الخروج" },
+  ja: { title: "CarePulse", systemStatus: "患者モニタリングシステム", connected: "ベルト接続中", disconnected: "ベルト切断", sinceMeal: "前回の食事から", sinceUrine: "前回の排尿から", sinceBowel: "前回の排便から", alerts: "アラート", medications: "服薬", notes: "臨床メモ", logout: "ログアウト" },
+  ru: { title: "CarePulse", systemStatus: "Система мониторинга пациента", connected: "РЕМЕНЬ ПОДКЛЮЧЕН", disconnected: "РЕМЕНЬ ОТКЛЮЧЕН", sinceMeal: "С последнего приема пищи", sinceUrine: "С последнего мочеиспускания", sinceBowel: "С последней дефекации", alerts: "Оповещения", medications: "Лекарства", notes: "Клинические заметки", logout: "Выйти" },
+  pt: { title: "CarePulse", systemStatus: "Sistema de Monitoramento", connected: "CINTO CONECTADO", disconnected: "CINTO DESCONECTADO", sinceMeal: "Desde a última refeição", sinceUrine: "Desde a última urina", sinceBowel: "Desde a última evacuação", alerts: "Alertas", medications: "Medicamentos", notes: "Notas Clínicas", logout: "Sair" },
+  ne: { title: "केयरपल्स", systemStatus: "बिरामी निगरानी प्रणाली", connected: "बेल्ट जडान भयो", disconnected: "बेल्ट विच्छेद भयो", sinceMeal: "अन्तिम खाना पछि", sinceUrine: "अन्तिम पिसाब पछि", sinceBowel: "अन्तिम शौच पछि", alerts: "अलर्ट", medications: "औषधिहरू", notes: "क्लिनिकल नोटहरू", logout: "लग आउट" },
+
+  // --- Indian (Keep your existing Indian languages here) ---
+  hi: { title: "केयरपल्स", systemStatus: "मरीज निगरानी प्रणाली", connected: "बेल्ट जुड़ा हुआ है", disconnected: "बेल्ट डिस्कनेक्ट हो गया", sinceMeal: "पिछले भोजन के बाद से", sinceUrine: "पिछले पेशाब के बाद से", sinceBowel: "पिछली शौच के बाद से", alerts: "अलर्ट", medications: "दवाइयाँ", notes: "क्लिनिकल नोट्स", logout: "लॉग आउट" },
+  mr: { title: "केअरपल्स", systemStatus: "रुग्ण देखरेख प्रणाली", connected: "बेल्ट जोडला गेला आहे", disconnected: "बेल्ट डिस्कनेक्ट झाला", sinceMeal: "शेवटच्या जेवणापासून", sinceUrine: "शेवटच्या लघवीपासून", sinceBowel: "शेवटच्या शौचापासून", alerts: "अलर्ट", medications: "औषधे", notes: "क्लिनिकल नोट्स", logout: "लॉग आउट" },
+  ta: { title: "கேர் பல்ஸ்", systemStatus: "நோயாளி கண்காணிப்பு அமைப்பு", connected: "பெல்ட் இணைக்கப்பட்டுள்ளது", disconnected: "பெல்ட் துண்டிக்கப்பட்டது", sinceMeal: "கடைசி உணவிற்கு பிறகு", sinceUrine: "கடைசி சிறுநீருக்கு பிறகு", sinceBowel: "கடைசி மலம் கழித்த பிறகு", alerts: "எச்சரிக்கைகள்", medications: "மருந்துகள்", notes: "மருத்துவ குறிப்புகள்", logout: "வெளியேறு" },
+  te: { title: "కేర్ పల్స్", systemStatus: "రోగి పర్యవేక్షణ వ్యవస్థ", connected: "బెల్ట్ కనెక్ట్ చేయబడింది", disconnected: "బెల్ట్ డిస్కనెక్ట్ చేయబడింది", sinceMeal: "చివరి భోజనం నుండి", sinceUrine: "చివరి మూత్ర విసర్జన నుండి", sinceBowel: "చివరి మల విసర్జన నుండి", alerts: "అలర్ట్లు", medications: "మందులు", notes: "క్లినికల్ నోટ્સ", logout: "లాగ్ అవుట్" },
+  as: { title: "কেয়াৰ পাল্‌চ", systemStatus: "ৰোগী নিৰীক্ষণ প্ৰণালী", connected: "বেল্ট সংলগ্ন হৈ আছে", disconnected: "বেল্ট বিছিন্ন হৈছে", sinceMeal: "শেষ আহাৰৰ পৰা", sinceUrine: "শেষ প্ৰস্ৰাৱৰ পৰা", sinceBowel: "শেষ শৌচৰ পৰা", alerts: "সতৰ্কবাণী", medications: "ঔষধ", notes: "ক্লিনিকাল টোকা", logout: "লগ আউট" },
+  mni: { title: "কেয়র পルス", systemStatus: "অনায়েক য়েংশিনবগী লম্বী", connected: "বেল্ট শমজিনখ্রে", disconnected: "বেল্ট থাদোকখ্রে", sinceMeal: "অকোনবা চাক চবগী মতুংদগী", sinceUrine: "অকোনবা অমতিং চৎপগী মতুংদগী", sinceBowel: "অকোনবা খোং হাম্বগী মতুংদগী", alerts: "চেকশিনৱা", medications: "হিদাক-ল্যাংথক", notes: "ক্লিনিকাল নোট", logout: "লগ আউত" },
+  gu: { title: "કેર પલ્સ", systemStatus: "દર્દી નિરીક્ષણ સિસ્ટમ", connected: "બેલ્ટ જોડાયેલ છે", disconnected: "બેલ્ટ ડિસ્કનેક્ટ થયો", sinceMeal: "છેલ્લા ભોજન પછીથી", sinceUrine: "છેલ્લા પેશાબ પછીથી", sinceBowel: "છેલ્લા મળ ત્યાગ પછીથી", alerts: "અલર્ટ્સ", medications: "દવાઓ", notes: "ક્લિનિકલ નોંધો", logout: "લૉગ આઉટ" },
+  kn: { title: "ಕೇರ್ ಪಲ್ಸ್", systemStatus: "ರೋಗಿ ಮೇಲ್ವಿಚಾರಣಾ ವ್ಯವಸ್ಥೆ", connected: "ಬೆಲ್ಟ್ ಸಂಪರ್ಕಗೊಂಡಿದೆ", disconnected: "ಬೆಲ್ಟ್ ಸಂಪರ್ಕ ಕಡಿತಗೊಂಡಿದೆ", sinceMeal: "ಕೊನೆಯ ಊಟದ ನಂತರ", sinceUrine: "ಕೊನೆಯ ಮೂತ್ರ ವಿಸರ್ಜನ ನಂತರ", sinceBowel: "ಕೊನೆಯ ಮಲ ವಿಸರ್ಜನೆ ನಂತರ", alerts: "ಎಚ್ಚರಿಕೆಗಳು", medications: "ಔಷಧಿಗಳು", notes: "ಕ್ಲಿನಿಕಲ್ ಟಿಪ್ಪಣಿಗಳು", logout: "ಲಾಗ್ ಔಟ್" },
+  ml: { title: "കെയർ പൾസ്", systemStatus: "രോഗി നിരീക്ഷണ സംവിധാനം", connected: "ബെൽറ്റ് ബന്ധിപ്പിച്ചിരിക്കുന്നു", disconnected: "ബെൽറ്റ് വിച്ഛേദിക്കപ്പെട്ടു", sinceMeal: "അവസാന ഭക്ഷണത്തിന് ശേഷം", sinceUrine: "അവസാന മൂത്രവിസർജ്ജനത്തിന് ശേഷം", sinceBowel: "അവസാന മലവിസർജ്ജനത്തിന് ശേഷം", alerts: "അലേർട്ടുകൾ", medications: "മരുന്നുകൾ", notes: "ക്ലിനിക്കൽ കുറിപ്പുകൾ", logout: "ലോഗ് ഔട്ട്" },
+  bn: { title: "কেয়ার পালস", systemStatus: "রোগী পর্যবেক্ষণ সিস্টেম", connected: "বেল্ট সংযুক্ত", disconnected: "বেল্ট সংযোগ বিচ্ছিন্ন", sinceMeal: "শেষ খাবারের পর থেকে", sinceUrine: "শেষ প্রস্রাবের পর থেকে", sinceBowel: "শেষ মলত্যাগের পর থেকে", alerts: "অ্যালার্ট", medications: "ওষুধ", notes: "ক্লিনিক্যাল নোট", logout: "লগ আউট" },
+  pa: { title: "ਕੇਅਰ ਪਲਸ", systemStatus: "ਮਰੀਜ਼ ਨਿਗਰਾਨੀ ਪ੍ਰਣਾਲੀ", connected: "ਬੈਲਟ ਜੁੜੀ ਹੋਈ ਹੈ", disconnected: "ਬੈਲਟ ਡਿਸਕਨੈਕਟ ਹੋ ਗਈ", sinceMeal: "ਆਖਰੀ ਭੋजन ਤੋਂ ਬਾਅद", sinceUrine: "ਆਖਰੀ ਪਿਸ਼ਾਬ ਤੋਂ ਬਾਅਦ", sinceBowel: "ਆਖਰੀ ਟੱਟੀ ਤੋਂ ਬਾਅਦ", alerts: "ਅਲਰਟ", medications: "ਦਵਾਈਆਂ", notes: "ਕਲੀਨਿਕਲ ਨੋਟਸ", logout: "ਲੌਗ ਆਊਟ" },
+  sat: { title: "केयर पल्स", systemStatus: "रोगी नेंगाओ सेबा", connected: "बेल्ट जोड़ाव अकाना", disconnected: "बेल्ट बाड़ जोड़ाव अकाना", sinceMeal: "मुचात जोम तायोम", sinceUrine: "मुचात उडुग तायोम", sinceBowel: "मुचात ईज तायोम", alerts: "एलेर्ट", medications: "रान को", notes: "क्लिनिकल ओल", logout: "ओडोक" },
+  ur: { title: "کیئر پلس", systemStatus: "مریض کی نگرانی کا نظام", connected: "بیلٹ منسلک ہے", disconnected: "بیلٹ منقطع ہو گیا", sinceMeal: "آخری کھانے کے بعد سے", sinceUrine: "آخری پیشاب کے بعد سے", sinceBowel: "آخری فضلے کے بعد سے", alerts: "الرٹس", medications: "ادویات", notes: "کلینیکل نوٹس", logout: "لاگ آؤٹ" },
+  or: { title: "କେୟାର ପଲ୍ସ", systemStatus: "ରୋଗୀ ନିରୀକ୍ଷଣ ପ୍ରଣାଳୀ", connected: "ବେଲ୍ଟ ସଂଯୁକ୍ତ ଅଛି", disconnected: "ବେଲ୍ଟ ବିଚ୍ଛିନ୍ନ ହୋଇଛି", sinceMeal: "ଶେଷ ଭୋଜନ ପରଠାରୁ", sinceUrine: "ଶେଷ ପରିସ୍ରା ପରଠାରୁ", sinceBowel: "ଶେଷ ମଳତ୍ୟାଗ ପରଠାରୁ", alerts: "ସତର୍କତା", medications: "ଓଷଧ", notes: "କ୍ଲିନିକାଲ୍ ନୋଟ୍", logout: "ଲଗ୍ ଆଉଟ୍" },
+  doi: { title: "केयर पल्स", systemStatus: "मरीज निगरानी प्रणाली", connected: "बेल्ट जुड़ी दी ऐ", disconnected: "बेल्ट कटी दी ऐ", sinceMeal: "खादा खादे शा बाद", sinceUrine: "पेशाब शा बाद", sinceBowel: "शौच शा बाद", alerts: "अलर्ट", medications: "दवाइयां", notes: "क्लिनिकल नोट्स", logout: "लाग आउट" },
+  brx: { title: "केयर पल्स", systemStatus: "साग्लोब नायदिं सिस्टम", connected: "बेल्ट फोनांजाबाय", disconnected: "बेल्ट सिगाइबाय", sinceMeal: "जोबथा जाखांनायनि उनाव", sinceUrine: "जोबथा हासुयनायनि उनाव", sinceBowel: "जोबथा खिनायनि उनाव", alerts: "एलेर्ट", medications: "मुलिफोर", notes: "क्लिनिकल नोट", logout: "लोग आउट" }
+};
+ 
 
 
 
 
 export default function CaregiverApp() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [lang, setLang] = useState('en'); 
+  const t = translations[lang] || translations['en'];
   // --- ADDED STATE FOR ONE-TIME SETUP ---
   const [isFirstSetup, setIsFirstSetup] = useState(true);
   const [patientProfile, setPatientProfile] = useState({
@@ -584,9 +618,48 @@ useEffect(() => {
               <div style={{ fontWeight: 'bold' }}>{patientProfile.caregiverName}</div>
               <div style={{ fontSize: '12px', color: '#94a3b8' }}>Caregiver</div>
             </div>
-            <button onClick={handleLogout} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Logout</button>
-          </div>
-        </div>
+              <select 
+                value={lang} 
+                onChange={(e) => setLang(e.target.value)}
+                style={{ background: '#1e293b', color: 'white', border: '1px solid #94a3b8', borderRadius: '8px', padding: '5px', cursor: 'pointer' }}
+              >
+                <optgroup label="International">
+                 <option value="en">English</option>
+                  <option value="es">Español (Spanish)</option>
+                  <option value="fr">Français (French)</option>
+                  <option value="de">Deutsch (German)</option>
+                  <option value="zh">中文 (Chinese)</option>
+                  <option value="ar">العربية (Arabic)</option>
+                  <option value="ja">日本語 (Japanese)</option>
+                  <option value="ru">Русский (Russian)</option>
+                  <option value="pt">Português (Portuguese)</option>
+                  <option value="ne">नेपाली (Nepali)</option>
+                </optgroup>
+                <optgroup label="Indian">
+               <option value="hi">हिन्दी (Hindi)</option>
+                <option value="mr">मराठी (Marathi)</option>
+                <option value="ta">தமிழ் (Tamil)</option>
+                <option value="te">తెలుగు (Telugu)</option>
+                <option value="kn">ಕನ್ನಡ (Kannada)</option>
+                <option value="gu">ગુજરાતી (Gujarati)</option>
+                <option value="ml">മലയാളം (Malayalam)</option>
+                <option value="bn">বাংলা (Bengali)</option>
+                <option value="as">অসমীয়া (Assamese)</option>
+                <option value="mni">মৈতেইলোন (Manipuri)</option>
+                <option value="pa">ਪੰਜਾਬੀ (Punjabi)</option>
+                <option value="sat">संताली (Santhali)</option>
+                <option value="ur">اردو (Urdu)</option>
+                <option value="or">ଓଡ଼ିଆ (Odia)</option>
+                <option value="doi">डोगरी (Dogri)</option>
+                <option value="brx">बड़ो (Bodo)</option>
+                </optgroup>
+              </select>
+
+              <button onClick={handleLogout} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                {t.logout}
+              </button>
+            </div></div>
+        
         <div style={{ background: '#1e293b', marginTop: '20px', padding: '15px 0' }}>
           <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 20px', display: 'flex', gap: '40px' }}>
             <div><p style={{ fontSize: '10px', color: '#94a3b8', margin: '0' }}>PATIENT</p><p style={{ margin: '0', fontWeight: 'bold' }}>{patientProfile.name}</p></div>
@@ -605,15 +678,23 @@ useEffect(() => {
 
         {/* --- ADDED CONTEXTUAL METRICS GRID --- */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '30px' }}>
-          <MetricCard title="Since Last Meal" value={timeStats.tslm} icon={<Utensils color="#f97316"/>} onReset={() => handleReset('meal')} />
-          <MetricCard title="Since Last Urine" value={timeStats.tslu} icon={<Droplets color="#3b82f6"/>} onReset={() => handleReset('toilet')} />
-          <MetricCard title="Since Last Bowel" value={timeStats.tslb} icon={<Baby color="#92400e"/>} onReset={() => handleReset('bowel')} />
-        </div>
+        <MetricCard title={t.sinceMeal} value={timeStats.tslm} icon={<Utensils color="#f97316"/>} onReset={() => handleReset('meal')} />
+        <MetricCard title={t.sinceUrine} value={timeStats.tslu} icon={<Droplets color="#3b82f6"/>} onReset={() => handleReset('toilet')} />
+        <MetricCard title={t.sinceBowel} value={timeStats.tslb} icon={<Baby color="#92400e"/>} onReset={() => handleReset('bowel')} />
+      </div>
 
         <div style={{ background: 'white', borderRadius: '12px', display: 'flex', border: '1px solid #e2e8f0', marginBottom: '20px', overflow: 'hidden' }}>
-          <button onClick={() => setActiveTab('alerts')} style={{ flex: 1, padding: '15px', border: 'none', background: activeTab === 'alerts' ? '#0f172a' : 'white', color: activeTab === 'alerts' ? 'white' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}>Alerts</button>
-          <button onClick={() => setActiveTab('medications')} style={{ flex: 1, padding: '15px', border: 'none', background: activeTab === 'medications' ? '#0f172a' : 'white', color: activeTab === 'medications' ? 'white' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}>Medications</button>
-          <button onClick={() => setActiveTab('notes')} style={{ flex: 1, padding: '15px', border: 'none', background: activeTab === 'notes' ? '#0f172a' : 'white', color: activeTab === 'notes' ? 'white' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}>Clinical Notes</button>
+        <button onClick={() => setActiveTab('alerts')} style={{ flex: 1, padding: '15px', border: 'none', background: activeTab === 'alerts' ? '#0f172a' : 'white', color: activeTab === 'alerts' ? 'white' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}>
+  {t.alerts}
+</button>
+
+<button onClick={() => setActiveTab('medications')} style={{ flex: 1, padding: '15px', border: 'none', background: activeTab === 'medications' ? '#0f172a' : 'white', color: activeTab === 'medications' ? 'white' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}>
+  {t.medications}
+</button>
+
+<button onClick={() => setActiveTab('notes')} style={{ flex: 1, padding: '15px', border: 'none', background: activeTab === 'notes' ? '#0f172a' : 'white', color: activeTab === 'notes' ? 'white' : '#64748b', fontWeight: 'bold', cursor: 'pointer' }}>
+  {t.notes}
+</button>
         </div>
 
         {activeTab === 'alerts' && (
@@ -639,13 +720,11 @@ useEffect(() => {
 
               <div>
                 <h3 style={{ margin: 0 }}>
-                  {beltConnected ? "BELT CONNECTED" : "BELT DISCONNECTED"}
+                {beltConnected ? t.connected : t.disconnected}
                 </h3>
 
                 <p style={{ margin: 0, fontSize: '14px' }}>
-                  {beltConnected
-                    ? "System monitoring real-time patient behavior"
-                    : "Waiting for sensor data from smart belt"}
+                {beltConnected ? t.monitoring : t.waiting}
                 </p>
 
               </div>
