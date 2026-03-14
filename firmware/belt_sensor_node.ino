@@ -9,8 +9,6 @@ const char* password = "12345678";
 const char* serverIP = "10.106.155.33";
 const int   serverPort = 5000;
 
-
-
 /* ================= MPU6050 ================= */
 #define MPU_ADDR 0x68
 #define SDA_PIN 21
