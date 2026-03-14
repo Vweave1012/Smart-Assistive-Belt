@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Bell, LogOut, Plus, Trash2, Phone, MessageSquare, Activity, Eye, EyeOff, Mail, Lock, Clock, User, CheckCircle, Utensils, Droplets, Baby } from 'lucide-react';
 
 import { loginUser, registerUser, predictState, getState, updateEvent } from "./api";
+import logo from "./assets/logo.svg";
 
 // ── TRANSLATIONS ──────────────────────────────────────────────────────────────
 const translations = {
@@ -358,8 +359,26 @@ useEffect(() => {
       <div style={{ background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ background: 'white', borderRadius: '12px', padding: '40px', maxWidth: '400px', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}>
           <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-            <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#1f2937', marginBottom: '8px' }}>CarePulse</h1>
-            <p style={{ fontSize: '12px', color: '#6b7280' }}>Patient Monitoring System</p>
+
+            <img
+              src={logo}
+              alt="Sanket Bandhu"
+              style={{
+                width: "120px",
+                height: "120px",
+                objectFit: "contain",
+                marginBottom: "10px"
+              }}
+            />
+
+            <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#1f2937', marginBottom: '8px' }}>
+              Sanket Bandhu
+            </h1>
+
+            <p style={{ fontSize: '12px', color: '#6b7280' }}>
+              Patient Monitoring System
+            </p>
+
           </div>
 
           <div style={{ display: 'flex', gap: '8px', marginBottom: '30px', background: '#f3f4f6', padding: '8px', borderRadius: '8px' }}>
@@ -431,7 +450,16 @@ useEffect(() => {
       <div style={{ background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ background: 'white', borderRadius: '12px', padding: '40px', maxWidth: '400px', width: '90%', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }}>
           <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-            <Activity size={40} color="#3b82f6" style={{ marginBottom: '15px' }} />
+            <img
+              src={logo}
+              alt="Sanket Bandhu"
+              style={{
+                width: "150px",
+                height: "150px",
+                objectFit: "contain",
+                marginBottom: "15px"
+              }}
+            />
             <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1f2937' }}>Patient Setup</h2>
             <p style={{ fontSize: '12px', color: '#6b7280' }}>Please enter patient details for this session</p>
           </div>
@@ -484,10 +512,28 @@ useEffect(() => {
       <div style={{ background: '#0f172a', padding: '20px 0', color: 'white' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Activity size={32} color="#60a5fa" />
-            <div>
-              <div style={{ fontSize: '20px', fontWeight: 'bold' }}>Patient Monitoring System</div>
-              <div style={{ fontSize: '12px', color: '#94a3b8' }}>Real-time Care Management</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '25px' }}>
+
+              <img
+                src={logo}
+                alt="Sanket Bandhu"
+                style={{
+                  width: "120px",
+                  height: "120px",
+                  objectFit: "contain"
+                }}
+              />
+
+              <div>
+                <div style={{ fontSize: '20px', fontWeight: 'bold' }}>
+                  Sanket Bandhu
+                </div>
+
+                <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                  Patient Monitoring System
+                </div>
+              </div>
+
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>

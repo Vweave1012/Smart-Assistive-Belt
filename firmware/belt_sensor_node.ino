@@ -2,12 +2,14 @@
 #include <Wire.h>
 
 /* ================= WIFI CONFIG ================= */
-const char* ssid     = "Sherly";
+const char* ssid     = "ESP32TEST";
 const char* password = "12345678";
 
 /* ❗ ONLY IP — NO http:// */
-const char* serverIP = "10.106.155.33";
+const char* serverIP = "192.168.43.91";
 const int   serverPort = 5000;
+
+
 
 /* ================= MPU6050 ================= */
 #define MPU_ADDR 0x68
@@ -20,8 +22,8 @@ const int   serverPort = 5000;
 #define FSR3_PIN 33
 
 /* ================= THRESHOLDS ================= */
-#define FSR_MIN        80
-#define FSR_MAX        3000
+#define FSR_MIN        10
+#define FSR_MAX        1500
 #define PRESENCE_TH    10
 WiFiClient client;
 
