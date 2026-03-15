@@ -50,7 +50,6 @@ def api_predict():
 
     try:
         data = request.get_json()
-
         if not data:
             return jsonify({"error": "No JSON received"}), 400
 

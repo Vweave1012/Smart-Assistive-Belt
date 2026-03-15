@@ -330,11 +330,13 @@ useEffect(() => {
 }, [isAuthenticated]);
 
 useEffect(() => {
-  if (!activeAlert || activeAlert === "NORMAL" || activeAlert === "NO_USER") return;
+
+  if (!beltConnected) return;
 
   let newAlert = null;
-  // Match both standard and demo-mode strings
-  if (activeAlert === "HUNGER" || activeAlert === "POTENTIAL_HUNGER") {
+
+  if (activeAlert === "POTENTIAL_HUNGER") {
+
     newAlert = {
       id: Date.now(),
       severity: "warning",
@@ -344,14 +346,43 @@ useEffect(() => {
       action: `Provide food to ${patientProfile.name}.`,
       timestamp: new Date()
     };
+
+  } else if (activeAlert === "POTENTIAL_PEE") {
+
+    newAlert = {
+      id: Date.now(),
+      severity: "critical",
+      icon: "🚽",
+      title: "Urine Activity Detected",
+      message: "Pressure change detected.",
+      action: `Assist ${patientProfile.name} immediately.`,
+      timestamp: new Date()
+    };
+
+  } else if (activeAlert === "POTENTIAL_POOP") {
+
+    newAlert = {
+      id: Date.now(),
+      severity: "critical",
+      icon: "🚽",
+      title: "Bowel Activity Detected",
+      message: "Sustained abdominal pressure detected.",
+      action: `Assist ${patientProfile.name} immediately.`,
+      timestamp: new Date()
+    };
+
   }
-  // Repeat this pattern for PEE and POOP...
-  
+
   if (newAlert) {
-    setAlerts(prev => [newAlert, ...prev]);
+    setAlerts(prev => {
+      if (prev.length > 0 && prev[0].title === newAlert.title) return prev;
+      return [newAlert, ...prev];
+    });
+
     setAlertHistory(prev => [newAlert, ...prev]);
   }
-}, [activeAlert, patientProfile.name]);
+
+}, [activeAlert]);
 
   // Login/Register Page
   if (!isAuthenticated) {

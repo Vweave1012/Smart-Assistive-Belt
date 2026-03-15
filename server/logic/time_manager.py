@@ -64,20 +64,37 @@ def apply_time_logic(ml_state, fsr_pct):
     except Exception:
         fsr = 0.0
 
-    # Ensure belt is worn (FSR pressure detected)
+    # check if belt worn
     if fsr < 5:
         return "NO_USER"
 
-    # TRIGGER ALERTS IMMEDIATELY
-    # App.js useEffect listens for these exact strings
-    if ml_state == "HUNGER":
-        return "POTENTIAL_HUNGER"
-    if ml_state == "PEE":
-        return "POTENTIAL_PEE"
-    if ml_state == "POOP":
-        return "POTENTIAL_POOP"
+    # load timestamps
+    tslm, tslu, tslb = get_time_metrics()
 
-    return "NORMAL"
+    # HUNGER
+    if ml_state == "HUNGER":
+        if tslm > HUNGER_MINUTES:
+            return "POTENTIAL_HUNGER"
+        else:
+            return "NORMAL"
+
+    # PEE
+    if ml_state == "PEE":
+        if tslu > PEE_MINUTES:
+            return "POTENTIAL_PEE"
+        else:
+            return "NORMAL"
+
+    # POOP
+    if ml_state == "POOP":
+        if tslb > POOP_MINUTES:
+            return "POTENTIAL_POOP"
+        else:
+            return "NORMAL"
+
+    if ml_state not in ["HUNGER", "PEE", "POOP","NO_USER"]:
+        return "NORMAL"
+
 
 # ================= TIMER UPDATE (RESET HANDLER) =================
 def update_event(final_state):
