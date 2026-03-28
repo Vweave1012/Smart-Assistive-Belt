@@ -55,45 +55,39 @@ def get_time_metrics():
 
 # ================= CORE DECISION LOGIC (DEMO MODE) =================
 def apply_time_logic(ml_state, fsr_pct):
-    """
-    MODIFIED FOR DEMO: Bypasses time checks for instant alerts.
-    Returns strings that trigger alert cards in App.js.
-    """
+
     try:
         fsr = float(fsr_pct)
     except Exception:
         fsr = 0.0
 
-    # check if belt worn
+    # Check if belt is worn
     if fsr < 5:
         return "NO_USER"
 
-    # load timestamps
+    # Load timestamps
     tslm, tslu, tslb = get_time_metrics()
 
-    # HUNGER
+    # Hunger detection
     if ml_state == "HUNGER":
         if tslm > HUNGER_MINUTES:
             return "POTENTIAL_HUNGER"
-        else:
-            return "NORMAL"
+        return "NORMAL"
 
-    # PEE
-    if ml_state == "PEE":
+    # Urine detection
+    elif ml_state == "PEE":
         if tslu > PEE_MINUTES:
             return "POTENTIAL_PEE"
-        else:
-            return "NORMAL"
+        return "NORMAL"
 
-    # POOP
-    if ml_state == "POOP":
+    # Bowel detection
+    elif ml_state == "POOP":
         if tslb > POOP_MINUTES:
             return "POTENTIAL_POOP"
-        else:
-            return "NORMAL"
-
-    if ml_state not in ["HUNGER", "PEE", "POOP","NO_USER"]:
         return "NORMAL"
+
+    # Any other ML output
+    return "NORMAL"
 
 
 # ================= TIMER UPDATE (RESET HANDLER) =================
